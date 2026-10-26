@@ -76,6 +76,41 @@
 - Ex: "Implement X component" → "Add tests" → "Export function" → "Docs"
 - **Objectif** : Revue rapide (< 500 lignes par PR idéal)
 
+## ✍️ CONVENTIONS COMMITS & PRs
+
+**Langue** : **anglais** obligatoire pour les messages de commit, les titres et les descriptions de PR.
+
+**Branches** :
+- 1 tâche = 1 branche (`feat/...`, `fix/...`, `chore/...`, `docs/...`) créée depuis `dev`
+- PR de la branche de tâche **vers `dev`**
+- `dev` → `main` : PR ouverte **par l'humain uniquement**, aux jalons
+
+**Signature agent/modèle (obligatoire)** : chaque commit se termine par deux trailers git, et chaque PR par la même ligne en pied de description.
+
+```bash
+git commit -m "feat: add bar chart" -m "Body explaining what and why." \
+  --trailer "Agent: Claude Code vX.Y.Z" \
+  --trailer "Model: claude-<model> (provider: anthropic)"
+```
+
+Exemple réel (commit fait par Hermes) :
+
+```
+Agent: Hermes Agent v0.22.5 (2026.9.24)
+Model: anthropic/claude-opus-5.5 (provider: nous)
+```
+
+Pied de PR :
+
+```
+---
+_Agent: <agent> vX.Y.Z · Model: <model> (provider: <provider>)_
+```
+
+Utiliser la **vraie** version de l'agent (`claude --version`, `hermes --version`) et le modèle réellement utilisé. Ne jamais copier les valeurs d'exemple.
+
+**Identité** : n'utiliser que le pseudo GitHub **L4pinBleu** (copyright, auteur, docs). Jamais de nom légal.
+
 ## 🧪 TESTS UNITAIRES
 
 **3 langages = 3 dépôts = 3 suites de tests** :
@@ -108,7 +143,7 @@ NO closed-source dependencies allowed in final build.
 2. **Proposer** la prochaine sous-tâche (1 à 3 max)
 3. **Attendre validation** ou exécuter (si pas de blocage)
 4. **Livrables** :
-   - Commits sur `dev` uniquement
+   - Commits sur une branche de tâche, PR vers `dev`
    - PRs bien décrites, prêtes pour revue
    - Tests à jour
    - Sketchboard si c'est du design
@@ -134,9 +169,12 @@ npm test         # TS/Svelte
 cargo test      # Rust
 
 # Gestion tâches
-git add .
-git commit -m "feat: ..."
-git push origin dev
+git switch dev && git pull
+git switch -c feat/<task>
+git add <files>
+git commit -m "feat: ..." --trailer "Agent: ..." --trailer "Model: ..."
+git push -u origin feat/<task>
+gh pr create --base dev
 ```
 
 ## ⚠️ CONSIGNES SPÉCIFIQUES
