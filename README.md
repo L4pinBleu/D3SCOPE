@@ -33,7 +33,7 @@ These projects are built on top of D3SCOPE. Each has its own interface:
 ## Repository layout
 
 This is a pnpm monorepo. The layout will grow over time and is described in
-`PLAN.md` (coming soon).
+[`PLAN.md`](./PLAN.md).
 
 ## Contributing
 
