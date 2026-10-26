@@ -12,12 +12,12 @@ dev playground.
 **Out of scope for this repository.** These live in their own repositories and
 use D3SCOPE as a dependency:
 
-| Project | Purpose |
-|---|---|
-| Portfolio | Personal finance and net-worth dashboards |
-| Stats | A free, simpler alternative to R, MATLAB or Statistica |
-| Company | Branded charts that follow company constraints (logo, palettes, formats) |
-| Plugins | Extra chart types, themes and palettes. They may be closed source (see `LICENSE-EXCEPTION.md`) |
+| Project   | Purpose                                                                                        |
+| --------- | ---------------------------------------------------------------------------------------------- |
+| Portfolio | Personal finance and net-worth dashboards                                                      |
+| Stats     | A free, simpler alternative to R, MATLAB or Statistica                                         |
+| Company   | Branded charts that follow company constraints (logo, palettes, formats)                       |
+| Plugins   | Extra chart types, themes and palettes. They may be closed source (see `LICENSE-EXCEPTION.md`) |
 
 ## 2. Repository layout (pnpm workspaces)
 
@@ -40,6 +40,7 @@ D3SCOPE/
 ```
 
 Rules:
+
 - `@d3scope/core` has **no UI-framework dependency**. Its only runtime
   dependencies are `d3-*` modules (ISC).
 - Framework bindings (`@d3scope/svelte`, and possibly others later) depend on
@@ -48,16 +49,16 @@ Rules:
 
 ## 3. Core modules (`@d3scope/core`)
 
-| Module | Responsibility |
-|---|---|
-| `scales/` | Thin wrappers over `d3-scale` with shared defaults (time, linear, band, log) |
-| `axes/` | Axis rendering, tick formatting, locale support |
-| `legends/` | Categorical and continuous legends |
-| `charts/` | Built-in charts: **bar** first, then line, area, pie/donut, scatter |
-| `interaction/` | Tooltip, hover, click, zoom/pan, data updates (`chart.update(data)`) |
-| `theme/` | Design tokens (palette, fonts, spacing) applied via CSS variables |
-| `export/` | PNG and SVG export (§5) |
-| `plugins/` | Plugin registry and public Plugin API (§4) |
+| Module         | Responsibility                                                               |
+| -------------- | ---------------------------------------------------------------------------- |
+| `scales/`      | Thin wrappers over `d3-scale` with shared defaults (time, linear, band, log) |
+| `axes/`        | Axis rendering, tick formatting, locale support                              |
+| `legends/`     | Categorical and continuous legends                                           |
+| `charts/`      | Built-in charts: **bar** first, then line, area, pie/donut, scatter          |
+| `interaction/` | Tooltip, hover, click, zoom/pan, data updates (`chart.update(data)`)         |
+| `theme/`       | Design tokens (palette, fonts, spacing) applied via CSS variables            |
+| `export/`      | PNG and SVG export (§5)                                                      |
+| `plugins/`     | Plugin registry and public Plugin API (§4)                                   |
 
 Public API sketch (not final):
 
@@ -88,7 +89,7 @@ import { definePlugin } from '@d3scope/core/plugin';
 export default definePlugin({
   name: 'd3scope-plugin-candlestick',
   version: '1.0.0',
-  apiVersion: '^1.0.0',      // Plugin API range the plugin supports
+  apiVersion: '^1.0.0', // Plugin API range the plugin supports
   charts: { candlestick: CandlestickChart },
   themes: { midnight: midnightTheme },
   palettes: {},
@@ -96,6 +97,7 @@ export default definePlugin({
 ```
 
 Loading modes:
+
 1. **npm / bundler:** `import plugin from '…'; registerPlugin(plugin)`.
 2. **Folder (final app builds):** `loadPlugins('/plugins/')` reads a
    `plugins/manifest.json` and `import()`s each entry at runtime.
@@ -104,6 +106,7 @@ Loading modes:
    renders charts declaratively.
 
 Guarantees:
+
 - The Plugin API follows **semver**. Breaking changes require a major version
   bump and a migration note.
 - Core checks `apiVersion` and refuses incompatible plugins with a clear error.
@@ -112,10 +115,10 @@ Guarantees:
 
 ## 5. Export
 
-| Format | Approach | Dependencies |
-|---|---|---|
-| **SVG** | Serialize the chart's SVG node and inline computed styles and fonts | none |
-| **PNG (browser)** | Draw the serialized SVG on a `<canvas>`, then `canvas.toBlob()` | none |
+| Format            | Approach                                                            | Dependencies |
+| ----------------- | ------------------------------------------------------------------- | ------------ |
+| **SVG**           | Serialize the chart's SVG node and inline computed styles and fonts | none         |
+| **PNG (browser)** | Draw the serialized SVG on a `<canvas>`, then `canvas.toBlob()`     | none         |
 
 There is no native (Tauri/Rust) export: everything runs in the browser.
 Server-side rendering can be added later as a plugin if a project needs it.
@@ -131,12 +134,13 @@ GSAP is **proprietary** (Webflow "Standard No Charge" license, not
 OSI-approved), so it is excluded. Animation uses two MIT/ISC layers, each with
 its own job:
 
-| Layer | Library | Used for |
-|---|---|---|
-| **Data transitions** | `d3-transition` (ISC, part of D3) | enter/update/exit of bars, lines, points, axes; interpolating SVG attributes (`d`, `x`, `height`…) inside D3 data joins |
-| **UI motion** | [`motion`](https://motion.dev) (MIT) | tooltips, legends, chart intro, springs, `inView`/scroll triggers, Svelte components, playground |
+| Layer                | Library                              | Used for                                                                                                                |
+| -------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| **Data transitions** | `d3-transition` (ISC, part of D3)    | enter/update/exit of bars, lines, points, axes; interpolating SVG attributes (`d`, `x`, `height`…) inside D3 data joins |
+| **UI motion**        | [`motion`](https://motion.dev) (MIT) | tooltips, legends, chart intro, springs, `inView`/scroll triggers, Svelte components, playground                        |
 
 **Why `motion` over `anime.js`** (both MIT):
+
 - It uses the Web Animations API when it can, so transform and opacity
   animations stay smooth even when the main thread is busy.
 - It has spring physics, `inView`/`scroll` helpers, and a tree-shakable mini
@@ -149,6 +153,7 @@ Note: motion's hardware acceleration does not apply to SVG geometry attributes,
 which is why data transitions stay on `d3-transition`.
 
 How the layers fit:
+
 - `@d3scope/core` defines a small `AnimationDriver` interface. The default
   driver is `d3-transition`, so the core needs no extra dependency.
 - A `motion` driver ships as an opt-in subpath (`@d3scope/core/animation/motion`)
@@ -161,6 +166,7 @@ How the layers fit:
 
 TypeScript is the default. Rust/WASM is adopted for a module **only** if an
 ADR in `docs/adr/` shows that all of these hold:
+
 1. A benchmark on realistic data (≥ 100k points) gives a **≥ 2× speed-up**
    end to end, including JS↔WASM data transfer.
 2. The bundle size cost is acceptable (target: < 100 kB gzip per WASM module).
@@ -176,18 +182,18 @@ the repository contains **no Rust** and the CI Rust job is skipped.
 
 ## 8. Tooling, tests and CI
 
-| Area | Tool | License |
-|---|---|---|
-| Package manager | pnpm workspaces | MIT |
-| Build | `tsup` (library), Vite (playground) | MIT |
-| TS unit tests | Vitest + v8 coverage | MIT |
-| Svelte tests | Vitest + `@testing-library/svelte` (jsdom) | MIT |
-| Rust tests (when `crates/` exists) | `cargo test`, coverage via `cargo-llvm-cov` | Apache-2.0 / MIT |
-| Lint | ESLint (flat config) + `typescript-eslint` + `eslint-plugin-svelte` | MIT |
-| Format | Prettier + `prettier-plugin-svelte` | MIT |
-| Versioning | Changesets | MIT |
-| UI (playground, docs) | `shadcn-svelte` + `bits-ui` (shadcn/ui is React-only) | MIT |
-| Dependency audit | `pnpm audit`, `pnpm licenses list` (+ `cargo audit`, `cargo deny` with Rust) | — |
+| Area                               | Tool                                                                         | License          |
+| ---------------------------------- | ---------------------------------------------------------------------------- | ---------------- |
+| Package manager                    | pnpm workspaces                                                              | MIT              |
+| Build                              | `tsup` (library), Vite (playground)                                          | MIT              |
+| TS unit tests                      | Vitest + v8 coverage                                                         | MIT              |
+| Svelte tests                       | Vitest + `@testing-library/svelte` (jsdom)                                   | MIT              |
+| Rust tests (when `crates/` exists) | `cargo test`, coverage via `cargo-llvm-cov`                                  | Apache-2.0 / MIT |
+| Lint                               | ESLint (flat config) + `typescript-eslint` + `eslint-plugin-svelte`          | MIT              |
+| Format                             | Prettier + `prettier-plugin-svelte`                                          | MIT              |
+| Versioning                         | Changesets                                                                   | MIT              |
+| UI (playground, docs)              | `shadcn-svelte` + `bits-ui` (shadcn/ui is React-only)                        | MIT              |
+| Dependency audit                   | `pnpm audit`, `pnpm licenses list` (+ `cargo audit`, `cargo deny` with Rust) | —                |
 
 **Why ESLint + Prettier rather than Biome.** Biome is faster and is a single
 tool, but its Svelte support is still partial: it doesn't fully lint or format
@@ -199,6 +205,7 @@ tooling and can revisit once Biome fully supports Svelte.
 
 `apps/playground` lets anyone **try D3SCOPE in the browser before installing
 it**. Users can:
+
 - pick a chart and edit its data (paste CSV/JSON) and options live
 - switch themes and palettes
 - export to PNG/SVG
@@ -215,6 +222,7 @@ download, which suits a quick self-test better.
 CI (GitHub Actions) runs on every PR to `dev` and `main`. Its jobs are TS and
 Svelte, plus Rust once `crates/` exists. Each job runs lint, test and coverage,
 and fails if:
+
 - any test fails, or
 - coverage is **below 80%** for its package, or
 - a dependency's license is not on the allowlist.
@@ -239,11 +247,11 @@ repositories.
 
 ## 10. Decisions
 
-| # | Question | Decision |
-|---|---|---|
-| 1 | Animation library | `d3-transition` for data transitions + `motion` (motion.dev) for UI motion. No GSAP (proprietary) |
-| 2 | Tauri app? | **No.** The self-test is a web playground (no download). Rust only after a WASM ADR |
-| 3 | Lint / format | ESLint + Prettier (mature Svelte support) |
-| 4 | Framework bindings | **Svelte** first. React/Vue only on demand |
-| 5 | `<d3scope-chart>` custom element | Deferred to the polish phase, after Plugin API v1 |
-| 6 | Playground hosting | Not needed for now; the playground runs locally. Online hosting is optional, later |
+| #   | Question                         | Decision                                                                                          |
+| --- | -------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 1   | Animation library                | `d3-transition` for data transitions + `motion` (motion.dev) for UI motion. No GSAP (proprietary) |
+| 2   | Tauri app?                       | **No.** The self-test is a web playground (no download). Rust only after a WASM ADR               |
+| 3   | Lint / format                    | ESLint + Prettier (mature Svelte support)                                                         |
+| 4   | Framework bindings               | **Svelte** first. React/Vue only on demand                                                        |
+| 5   | `<d3scope-chart>` custom element | Deferred to the polish phase, after Plugin API v1                                                 |
+| 6   | Playground hosting               | Not needed for now; the playground runs locally. Online hosting is optional, later                |
