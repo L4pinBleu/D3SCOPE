@@ -2,10 +2,11 @@
 
 **Version 1.0 — Additional permission under section 7 of the GNU Affero General Public License, version 3**
 
-Copyright (C) 2026 L4pinBleu and D3SCOPE contributors
+Copyright (C) 2026 L4pinBleu
 
 D3SCOPE is licensed under the GNU Affero General Public License, version 3
-(see [`LICENSE`](./LICENSE)). As the copyright holders of D3SCOPE, we grant
+or (at your option) any later version (SPDX: `AGPL-3.0-or-later`, see
+[`LICENSE`](./LICENSE)). As the copyright holders of D3SCOPE, we grant
 the following additional permission, as allowed by section 7 of the AGPL-3.0.
 
 ## 1. Definitions
@@ -53,7 +54,13 @@ When you convey a combination of the Library and one or more Plugins, you
 must still provide the Library's Corresponding Source, including any
 modifications to it, under the AGPL-3.0.
 
-## 4. Removal
+## 4. Later versions of the AGPL
+
+This exception also applies if you choose to use the Library under a later
+version of the GNU Affero General Public License, as allowed by the
+"or later" clause.
+
+## 5. Removal
 
 As stated in AGPL-3.0 section 7, when you convey a copy of the Library you may
 remove this additional permission from your copy, or from any part of it.

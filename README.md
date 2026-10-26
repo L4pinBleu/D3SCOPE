@@ -28,7 +28,7 @@ These projects are built on top of D3SCOPE. Each has its own interface:
 |---|---|---|
 | **Portfolio** | Personal finance and net-worth tracking (Finary / CoinGecko style) | separate (coming soon) |
 | **Stats** | A free, simpler alternative to R, MATLAB or Statistica | separate (coming soon) |
-| **Company** | Charts that follow company constraints: logo, palettes, formats | TBD |
+| **Company** | Charts that follow company constraints: logo, palettes, formats | separate (coming soon) |
 
 ## Repository layout
 
@@ -44,8 +44,8 @@ This is a pnpm monorepo. The layout will grow over time and is described in
 
 ## License
 
-D3SCOPE is licensed under the **GNU Affero General Public License v3.0**
-([`LICENSE`](./LICENSE)), with an additional
+D3SCOPE is licensed under the **GNU Affero General Public License v3.0 or
+later** (SPDX: `AGPL-3.0-or-later`, see [`LICENSE`](./LICENSE)), with an additional
 **[Plugin Exception](./LICENSE-EXCEPTION.md)**.
 
 In practice:
