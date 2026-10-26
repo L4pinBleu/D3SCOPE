@@ -35,6 +35,18 @@ These projects are built on top of D3SCOPE. Each has its own interface:
 This is a pnpm monorepo. The layout will grow over time and is described in
 [`PLAN.md`](./PLAN.md).
 
+## Development
+
+Requirements: Node.js ≥ 22.18 (see `.nvmrc`) and pnpm 12.
+
+```bash
+pnpm install          # install all workspace dependencies
+pnpm build            # build every package in packages/
+pnpm test             # run all test suites
+pnpm test:coverage    # tests + coverage (fails below 80%)
+pnpm typecheck        # strict TypeScript check
+```
+
 ## Contributing
 
 - Never commit to `main`. Work happens on task branches that are merged into

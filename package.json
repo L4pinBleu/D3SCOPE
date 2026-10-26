@@ -1,0 +1,16 @@
+{
+  "name": "d3scope-monorepo",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "build": "pnpm -r --filter \"./packages/**\" build",
+    "test": "pnpm -r test",
+    "test:coverage": "pnpm -r test:coverage",
+    "typecheck": "pnpm -r typecheck"
+  }
+}
