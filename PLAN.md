@@ -29,8 +29,8 @@ D3SCOPE/
 │  ├─ svelte/             @d3scope/svelte: thin Svelte 5 wrappers around core
 │  └─ plugin-template/    starter kit copied into external plugin repos
 ├─ apps/
-│  └─ playground/         Svelte + Vite web app: try the library online,
-│                         no install needed (static build, see §8)
+│  └─ playground/         Svelte + Vite web app: try the library in the
+│                         browser before installing it (see §8)
 ├─ crates/                Rust/WASM crates, only after an ADR (§7). Absent at start
 ├─ docs/                  sketchboards, ADRs (architecture decisions), guides
 ├─ .github/workflows/     CI (§8)
@@ -204,10 +204,11 @@ it**. Users can:
 - export to PNG/SVG
 - copy the generated code snippet
 
-It is a static Vite build, deployed automatically from `main`, plus a
-"Open in StackBlitz" link for a full editable project. A desktop (Tauri) app is
-**not** planned: a web page needs no download, which suits a quick self-test
-better.
+It is a static Vite build that runs locally with `pnpm --filter playground dev`.
+Online hosting (GitHub Pages, Cloudflare Pages…) and an "Open in StackBlitz"
+link are **optional** and can be added later, for example when the repository
+becomes public. A desktop (Tauri) app is **not** planned: a web page needs no
+download, which suits a quick self-test better.
 
 ### CI
 
@@ -228,10 +229,10 @@ and fails if:
    4. tooltip and click interactions
    5. PNG/SVG export
    6. Plugin API v1 + `plugin-template`
-   7. playground v1 (self-test) + deployment
+   7. playground v1 (self-test, runs locally)
 3. **polish**: more chart types, `motion` animation driver (§6), WASM
-   benchmarks (§7), `<d3scope-chart>` custom element, docs, first `v0.x`
-   release.
+   benchmarks (§7), `<d3scope-chart>` custom element, optional online
+   playground hosting, docs, first `v0.x` release.
 
 Portfolio, Stats and Company follow their own roadmaps in their own
 repositories.
@@ -245,9 +246,4 @@ repositories.
 | 3 | Lint / format | ESLint + Prettier (mature Svelte support) |
 | 4 | Framework bindings | **Svelte** first. React/Vue only on demand |
 | 5 | `<d3scope-chart>` custom element | Deferred to the polish phase, after Plugin API v1 |
-
-### Still open
-
-| # | Question | Proposal |
-|---|---|---|
-| 6 | Playground hosting: GitHub Pages on a **private** repo needs a paid GitHub plan | Cloudflare Pages or Netlify (free) while private; GitHub Pages once the repo is public |
+| 6 | Playground hosting | Not needed for now; the playground runs locally. Online hosting is optional, later |

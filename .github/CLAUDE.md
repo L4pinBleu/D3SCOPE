@@ -11,10 +11,12 @@
 
 **Architecture technique** :
 - Base : **D3.js** pour les visualisations
-- Animations : **GSAP** (optionnel si pertinent)
-- UI framework : **Shadcn UI**
-- Langages : **TypeScript** par défaut, **WASM/Rust** uniquement si boost justifié
-- Tests : **Tauri + Rust** + **Svelte** + **TypeScript** (tests unitaires par dépôt/langage)
+- Animations : **d3-transition** (transitions de données) + **motion** (motion.dev, MIT) pour l'UI. **Pas de GSAP** (licence propriétaire)
+- UI framework : **Svelte 5** + **shadcn-svelte** (port MIT de Shadcn UI)
+- Langages : **TypeScript** par défaut, **WASM/Rust** uniquement si boost justifié (ADR + benchmark, voir `PLAN.md` §7)
+- Tests : **TypeScript** + **Svelte** (Vitest). **Rust** seulement quand un crate WASM existe. Pas d'app Tauri
+- Lint / format : **ESLint + Prettier** (plugins Svelte)
+- Référence d'architecture : **`PLAN.md`**
 
 ## 🏗️ ARCHITECTURE PLUGS (PLUGIN)
 
@@ -40,9 +42,9 @@
 
 ### Flux typique (à adapter selon contexte) :
 1. **Agent (Plan/Architecture)** → crée `.task` (dosier ignoré) + `TASK.md`
-2. **Agent (Implémentation)** → exécute 1 tâche → commit `dev` → PR
+2. **Agent (Implémentation)** → exécute 1 tâche → branche de tâche → PR vers `dev`
 3. **Humain (vous)** → révisez PR → merge/revert
-4. **Agent (Tests)** → valide Rust/Svelte/TS → bloque si échec
+4. **Agent (Tests)** → valide TS/Svelte (+ Rust si présent) → bloque si échec
 
 **ORCHESTRATION** :
 - **Claude Code** : implémentation technique, rédaction PRs, segmentation tâches
@@ -113,12 +115,12 @@ Utiliser la **vraie** version de l'agent (`claude --version`, `hermes --version`
 
 ## 🧪 TESTS UNITAIRES
 
-**3 langages = 3 dépôts = 3 suites de tests** :
-- **Rust** : Dans dépôt Tauri (performance-critical code)
-- **Svelte** : Composants UI (accessibilité, responsive, states)
-- **TypeScript** : Logique D3, helpers, export handlers (WASM builder)
+**Suites de tests (monorepo)** :
+- **TypeScript** : logique D3, helpers, export, Plugin API (`packages/core`)
+- **Svelte** : composants UI (accessibilité, responsive, states) (`packages/svelte`, `apps/playground`)
+- **Rust** : uniquement dans `crates/` après validation d'un ADR WASM (code critique en performance)
 
-**Objectif** : couverture > 80% par dépôt, CI bloque si < 80%
+**Objectif** : couverture > 80% par package, CI bloque si < 80%
 
 ## 📜 LICENCE : AGPL-3.0-or-later + Plugin Exception
 
