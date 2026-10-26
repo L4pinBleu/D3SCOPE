@@ -120,20 +120,20 @@ Utiliser la **vraie** version de l'agent (`claude --version`, `hermes --version`
 
 **Objectif** : couverture > 80% par dépôt, CI bloque si < 80%
 
-## 📜 LICENCE : AGPL-3.0
+## 📜 LICENCE : AGPL-3.0-or-later + Plugin Exception
 
-**Clause personnalisée** :
-```
-Permission is hereby granted to use this software commercially AND/or
-non-commercially under the following condition:
-- If you incorporate this library into a derivative work, the derivative
-  work MUST remain open-source (per AGPL-3.0).
-- EXCEPTION: Plugins/extensions added ON TOP of this library are exempt.
-
-NO closed-source dependencies allowed in final build.
-```
-
-**README doit** : Expliquer la licence + checker les dépendances (npm audit, ...).
+- **Licence** : `AGPL-3.0-or-later` (SPDX), texte intégral dans [`LICENSE`](../LICENSE) — ne jamais le modifier.
+- **Exception plugins** : [`LICENSE-EXCEPTION.md`](../LICENSE-EXCEPTION.md) (permission additionnelle, AGPL §7).
+  Un plugin qui n'utilise **que l'API Plugin publique**, distribué séparément et chargé au runtime
+  (`plugins/` ou module/élément JS externe), peut être **closed-source**.
+- **Reste AGPL** : le core, toute modification du core, tout fork, et les fonctionnalités principales de la librairie.
+- **Copyright** : `L4pinBleu` (pseudo GitHub uniquement).
+- **Dépendances du core** : open-source et compatibles AGPL uniquement (MIT, ISC, BSD-2/3, Apache-2.0,
+  MPL-2.0, LGPL-3.0, GPL-3.0). **Aucune dépendance closed-source / propriétaire** dans le core,
+  même gratuite. Les plugins en sont exemptés.
+- **Avant d'ajouter une dépendance** : vérifier sa licence (`npm view <pkg> license`, `pnpm licenses list`,
+  `cargo deny check licenses`) et la mentionner dans la PR.
+- Le `README.md` explique la licence et la politique de dépendances : le tenir à jour.
 
 ## 🚀 ATTENDUS DE L'AGENT
 
