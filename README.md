@@ -24,11 +24,11 @@ a real gain, and each such choice is documented.
 
 These projects are built on top of D3SCOPE. Each has its own interface:
 
-| Project | Use case | Repository |
-|---|---|---|
+| Project       | Use case                                                           | Repository             |
+| ------------- | ------------------------------------------------------------------ | ---------------------- |
 | **Portfolio** | Personal finance and net-worth tracking (Finary / CoinGecko style) | separate (coming soon) |
-| **Stats** | A free, simpler alternative to R, MATLAB or Statistica | separate (coming soon) |
-| **Company** | Charts that follow company constraints: logo, palettes, formats | separate (coming soon) |
+| **Stats**     | A free, simpler alternative to R, MATLAB or Statistica             | separate (coming soon) |
+| **Company**   | Charts that follow company constraints: logo, palettes, formats    | separate (coming soon) |
 
 ## Repository layout
 
@@ -45,6 +45,8 @@ pnpm build            # build every package in packages/
 pnpm test             # run all test suites
 pnpm test:coverage    # tests + coverage (fails below 80%)
 pnpm typecheck        # strict TypeScript check
+pnpm lint             # ESLint (type-aware rules)
+pnpm format           # Prettier (use format:check in CI)
 ```
 
 ## Contributing
@@ -62,12 +64,12 @@ later** (SPDX: `AGPL-3.0-or-later`, see [`LICENSE`](./LICENSE)), with an additio
 
 In practice:
 
-| You want to… | Allowed? | Conditions |
-|---|---|---|
-| Use D3SCOPE in a commercial or non-commercial project | ✅ | AGPL-3.0 |
-| Modify or fork the D3SCOPE core | ✅ | Your version must stay open source under AGPL-3.0, including when it is served over a network |
-| Write a **plugin** (chart type, theme, palette, connector) that uses only the public Plugin API | ✅ | Any license, **including closed source** |
-| Ship a closed-source build of the core or its main features | ❌ | — |
+| You want to…                                                                                    | Allowed? | Conditions                                                                                    |
+| ----------------------------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------- |
+| Use D3SCOPE in a commercial or non-commercial project                                           | ✅       | AGPL-3.0                                                                                      |
+| Modify or fork the D3SCOPE core                                                                 | ✅       | Your version must stay open source under AGPL-3.0, including when it is served over a network |
+| Write a **plugin** (chart type, theme, palette, connector) that uses only the public Plugin API | ✅       | Any license, **including closed source**                                                      |
+| Ship a closed-source build of the core or its main features                                     | ❌       | —                                                                                             |
 
 This summary is informational. If it differs from `LICENSE` or
 `LICENSE-EXCEPTION.md`, those files are what count.
