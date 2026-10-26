@@ -1,7 +1,7 @@
 # D3SCOPE — Architecture Plan
 
 > Status: **draft**, under review in the `docs/plan` PR. This document describes
-> the target architecture. Items marked **❓** are open decisions.
+> the target architecture. Decisions taken are recorded in §10.
 
 ## 1. Scope
 
@@ -29,14 +29,14 @@ D3SCOPE/
 │  ├─ svelte/             @d3scope/svelte: thin Svelte 5 wrappers around core
 │  └─ plugin-template/    starter kit copied into external plugin repos
 ├─ apps/
-│  └─ playground/         Svelte + Vite dev app for visual checks and demos
-│     └─ src-tauri/       ❓ Tauri shell (Rust): native export, file access
-├─ crates/                ❓ Rust crates (WASM or Tauri), only when justified (§7)
+│  └─ playground/         Svelte + Vite web app: try the library online,
+│                         no install needed (static build, see §8)
+├─ crates/                Rust/WASM crates, only after an ADR (§7). Absent at start
 ├─ docs/                  sketchboards, ADRs (architecture decisions), guides
 ├─ .github/workflows/     CI (§8)
 ├─ pnpm-workspace.yaml
 ├─ package.json           root scripts only (no runtime deps)
-└─ Cargo.toml             ❓ Rust workspace, created with the first crate
+└─ Cargo.toml             Rust workspace, created only with the first crate
 ```
 
 Rules:
@@ -116,7 +116,9 @@ Guarantees:
 |---|---|---|
 | **SVG** | Serialize the chart's SVG node and inline computed styles and fonts | none |
 | **PNG (browser)** | Draw the serialized SVG on a `<canvas>`, then `canvas.toBlob()` | none |
-| **PNG/PDF (native)** | ❓ Tauri command rendering SVG in Rust (e.g. `resvg`, license to verify) | Rust crate |
+
+There is no native (Tauri/Rust) export: everything runs in the browser.
+Server-side rendering can be added later as a plugin if a project needs it.
 
 `.task` mentioned `html2canvas` (MIT). It is designed to capture HTML, not SVG.
 Because charts are pure SVG, the native canvas path is smaller and more
@@ -125,17 +127,35 @@ tooltips) must appear in the export.
 
 ## 6. Animation
 
-`CLAUDE.md` lists **GSAP** as optional, but GSAP is **proprietary** (Webflow
-"Standard No Charge" license, not OSI-approved). Under the dependency policy it
-**cannot be a dependency of the core**.
+GSAP is **proprietary** (Webflow "Standard No Charge" license, not
+OSI-approved), so it is excluded. Animation uses two MIT/ISC layers, each with
+its own job:
 
-Proposal:
-- The core uses **`d3-transition`** (ISC), which already ships with D3 and
-  covers chart enter, update and exit transitions.
-- If richer animation is wanted later, it goes into a **separate plugin**
-  (closed-source dependencies are allowed there), e.g. `d3scope-plugin-gsap`,
-  or uses an MIT alternative such as `motion`.
-- ❓ Your decision is needed. Once you choose, `CLAUDE.md` will be updated.
+| Layer | Library | Used for |
+|---|---|---|
+| **Data transitions** | `d3-transition` (ISC, part of D3) | enter/update/exit of bars, lines, points, axes; interpolating SVG attributes (`d`, `x`, `height`…) inside D3 data joins |
+| **UI motion** | [`motion`](https://motion.dev) (MIT) | tooltips, legends, chart intro, springs, `inView`/scroll triggers, Svelte components, playground |
+
+**Why `motion` over `anime.js`** (both MIT):
+- It uses the Web Animations API when it can, so transform and opacity
+  animations stay smooth even when the main thread is busy.
+- It has spring physics, `inView`/`scroll` helpers, and a tree-shakable mini
+  build (`motion/mini`).
+- It is actively maintained by a large community.
+- anime.js is strongest at SVG morphing and line drawing, but D3
+  (`d3-interpolate`) already covers that inside charts.
+
+Note: motion's hardware acceleration does not apply to SVG geometry attributes,
+which is why data transitions stay on `d3-transition`.
+
+How the layers fit:
+- `@d3scope/core` defines a small `AnimationDriver` interface. The default
+  driver is `d3-transition`, so the core needs no extra dependency.
+- A `motion` driver ships as an opt-in subpath (`@d3scope/core/animation/motion`)
+  with `motion` as an **optional peer dependency**. Users who don't import it
+  don't pay for it.
+- `@d3scope/svelte` and the playground depend on `motion` directly.
+- Every animation respects `prefers-reduced-motion`.
 
 ## 7. TypeScript vs Rust/WASM
 
@@ -151,7 +171,8 @@ series (LTTB), binning and density estimates for histograms, and large-scale
 hit-testing for hover.
 
 Rust code is written to be **educational**: commented choices, idiomatic
-error handling, and tests next to the code.
+error handling, and tests next to the code. Until the first ADR is accepted,
+the repository contains **no Rust** and the CI Rust job is skipped.
 
 ## 8. Tooling, tests and CI
 
@@ -161,21 +182,45 @@ error handling, and tests next to the code.
 | Build | `tsup` (library), Vite (playground) | MIT |
 | TS unit tests | Vitest + v8 coverage | MIT |
 | Svelte tests | Vitest + `@testing-library/svelte` (jsdom) | MIT |
-| Rust tests | `cargo test`, coverage via `cargo-llvm-cov` | Apache-2.0 / MIT |
-| Lint / format | ❓ Biome *or* ESLint + Prettier | MIT |
+| Rust tests (when `crates/` exists) | `cargo test`, coverage via `cargo-llvm-cov` | Apache-2.0 / MIT |
+| Lint | ESLint (flat config) + `typescript-eslint` + `eslint-plugin-svelte` | MIT |
+| Format | Prettier + `prettier-plugin-svelte` | MIT |
 | Versioning | Changesets | MIT |
 | UI (playground, docs) | `shadcn-svelte` + `bits-ui` (shadcn/ui is React-only) | MIT |
-| Dependency audit | `pnpm audit`, `pnpm licenses list`, `cargo audit`, `cargo deny` | — |
+| Dependency audit | `pnpm audit`, `pnpm licenses list` (+ `cargo audit`, `cargo deny` with Rust) | — |
 
-CI (GitHub Actions) runs on every PR to `dev` and `main`. It has three jobs
-(TS, Svelte, Rust), each running lint, test and coverage. A job fails if:
+**Why ESLint + Prettier rather than Biome.** Biome is faster and is a single
+tool, but its Svelte support is still partial: it doesn't fully lint or format
+`.svelte` templates. The ESLint and Prettier Svelte plugins are the
+officially supported path. Since Svelte is our UI layer, we choose the mature
+tooling and can revisit once Biome fully supports Svelte.
+
+### Self-test playground
+
+`apps/playground` lets anyone **try D3SCOPE in the browser before installing
+it**. Users can:
+- pick a chart and edit its data (paste CSV/JSON) and options live
+- switch themes and palettes
+- export to PNG/SVG
+- copy the generated code snippet
+
+It is a static Vite build, deployed automatically from `main`, plus a
+"Open in StackBlitz" link for a full editable project. A desktop (Tauri) app is
+**not** planned: a web page needs no download, which suits a quick self-test
+better.
+
+### CI
+
+CI (GitHub Actions) runs on every PR to `dev` and `main`. Its jobs are TS and
+Svelte, plus Rust once `crates/` exists. Each job runs lint, test and coverage,
+and fails if:
 - any test fails, or
 - coverage is **below 80%** for its package, or
 - a dependency's license is not on the allowlist.
 
 ## 9. Roadmap (this repository)
 
-1. **init**: license ✅, README ✅, PLAN (this doc), workspace scaffold, CI.
+1. **init**: license ✅, README ✅, PLAN (this doc), workspace scaffold, lint/format, CI.
 2. **core**:
    1. sketchboards (3 iterations max per use case, validated before any UI code)
    2. scales, axes and legends
@@ -183,18 +228,26 @@ CI (GitHub Actions) runs on every PR to `dev` and `main`. It has three jobs
    4. tooltip and click interactions
    5. PNG/SVG export
    6. Plugin API v1 + `plugin-template`
-3. **polish**: more chart types, animations (per the §6 decision), WASM
-   benchmarks (§7), docs, first `v0.x` release.
+   7. playground v1 (self-test) + deployment
+3. **polish**: more chart types, `motion` animation driver (§6), WASM
+   benchmarks (§7), `<d3scope-chart>` custom element, docs, first `v0.x`
+   release.
 
 Portfolio, Stats and Company follow their own roadmaps in their own
 repositories.
 
-## 10. Open decisions
+## 10. Decisions
+
+| # | Question | Decision |
+|---|---|---|
+| 1 | Animation library | `d3-transition` for data transitions + `motion` (motion.dev) for UI motion. No GSAP (proprietary) |
+| 2 | Tauri app? | **No.** The self-test is a web playground (no download). Rust only after a WASM ADR |
+| 3 | Lint / format | ESLint + Prettier (mature Svelte support) |
+| 4 | Framework bindings | **Svelte** first. React/Vue only on demand |
+| 5 | `<d3scope-chart>` custom element | Deferred to the polish phase, after Plugin API v1 |
+
+### Still open
 
 | # | Question | Proposal |
 |---|---|---|
-| 1 | GSAP vs open-source animation | `d3-transition` in core, animation plugin later |
-| 2 | Is a Tauri shell in this repository needed? | Yes, inside `apps/playground` only, for native export + Rust tests |
-| 3 | Biome or ESLint + Prettier | Biome (one tool, fast) |
-| 4 | Svelte-only bindings, or also React/Vue later? | Svelte first, others on demand |
-| 5 | Custom element `<d3scope-chart>` in v1? | Defer to after Plugin API v1 |
+| 6 | Playground hosting: GitHub Pages on a **private** repo needs a paid GitHub plan | Cloudflare Pages or Netlify (free) while private; GitHub Pages once the repo is public |
