@@ -4,7 +4,7 @@
 > D3SCOPE. D3SCOPE builds only the **charts and the structure** (core, core plugins, Plugin API).
 > This sketchboard decides which pieces the library must provide. It does not design the app.
 
-## Iteration 2 / 3 (current)
+## Iteration 2 / 3 (validated ✅)
 
 ![Portfolio sketchboard, iteration 2](./portfolio-v2.svg)
 
@@ -24,17 +24,18 @@ Source: [`portfolio-v2.excalidraw`](./portfolio-v2.excalidraw). Drag and drop it
 
 ### Who provides what
 
-| Color in the sketch | Provider                       | Pieces used by this example                                                                                                                                   |
-| ------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Blue                | `@d3scope/core`                | area/line chart + time scale, crosshair tooltip, donut/pie + legend, sparkline, `chart.update(data)`, locale-aware number/date formatting, light theme tokens |
-| Purple              | Core plugins                   | treemap (with drill-down), brush (time range linked to another chart)                                                                                         |
-| Orange              | Finance plugin (separate repo) | candlestick, finance helpers                                                                                                                                  |
-| Grey, dashed        | The app (not D3SCOPE)          | sidebar, period buttons, KPI cards, tables, settings screen                                                                                                   |
+| Color in the sketch | Provider                      | Pieces used by this example                                                                                                                                   |
+| ------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Blue                | `@d3scope/core`               | area/line chart + time scale, crosshair tooltip, donut/pie + legend, sparkline, `chart.update(data)`, locale-aware number/date formatting, light theme tokens |
+| Purple              | Core plugins                  | treemap (with drill-down), brush (time range linked to another chart)                                                                                         |
+| Orange              | Finance plugin (out of scope) | candlestick, finance helpers                                                                                                                                  |
+| Grey, dashed        | The app (not D3SCOPE)         | sidebar, period buttons, KPI cards, tables, settings screen                                                                                                   |
 
-### Questions for review
+### Review outcome: validated ✅
 
-1. Is the split above right? In particular, should **sparkline** stay in core (my proposal, because it's just a minimal line chart), or become a core plugin?
-2. Is this iteration enough to **validate Portfolio**? If yes, there is no iteration 3, and the next sketchboard is Company or Stats.
+- **Sparkline stays in core.** All "simple" charts go in core; plugins only hold specific chart utilities.
+- **Iteration 2 is final.** There is no iteration 3.
+- **Finance charts (orange)** are **out of D3SCOPE's scope**. A finance plugin is built by others on top of D3SCOPE, which only provides the Plugin API, `plugin-template` and the building blocks (see PLAN §4).
 
 ## Iteration 1 / 3 (history)
 
