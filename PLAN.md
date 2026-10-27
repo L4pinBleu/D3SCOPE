@@ -1,23 +1,26 @@
 # D3SCOPE — Architecture Plan
 
-> Status: **draft**, under review in the `docs/plan` PR. This document describes
-> the target architecture. Decisions taken are recorded in §10.
+> Status: **living document**. It describes the target architecture and is
+> updated by PR whenever a decision changes. Decisions taken are recorded in §10.
 
 ## 1. Scope
 
 D3SCOPE is a **library**: a TypeScript charting toolkit built on D3.js. This
-repository contains only the library, its official framework bindings, and a
-dev playground.
+repository contains only the library (charts + structure), its official
+framework bindings, its official core plugins, and a dev playground.
 
 **Out of scope for this repository.** These live in their own repositories and
-use D3SCOPE as a dependency:
+use D3SCOPE as a dependency. The apps are **examples**: their sketchboards
+(`docs/sketchboards/`) only decide what the library must provide, and
+D3SCOPE does not build the apps themselves.
 
-| Project   | Purpose                                                                                        |
-| --------- | ---------------------------------------------------------------------------------------------- |
-| Portfolio | Personal finance and net-worth dashboards                                                      |
-| Stats     | A free, simpler alternative to R, MATLAB or Statistica                                         |
-| Company   | Branded charts that follow company constraints (logo, palettes, formats)                       |
-| Plugins   | Extra chart types, themes and palettes. They may be closed source (see `LICENSE-EXCEPTION.md`) |
+| Project             | Purpose                                                                                        |
+| ------------------- | ---------------------------------------------------------------------------------------------- |
+| Portfolio (app)     | Personal finance and net-worth dashboards                                                      |
+| Stats (app)         | A free, simpler alternative to R, MATLAB or Statistica                                         |
+| Company (app)       | Branded charts that follow company constraints (logo, palettes, formats)                       |
+| Finance plugin      | `d3scope-plugin-finance`: candlestick/OHLC and finance helpers (too specific for the core)     |
+| Third-party plugins | Extra chart types, themes and palettes. They may be closed source (see `LICENSE-EXCEPTION.md`) |
 
 ## 2. Repository layout (pnpm workspaces)
 
@@ -28,6 +31,9 @@ D3SCOPE/
 │  │                      interactions, export, Plugin API (framework-agnostic)
 │  ├─ svelte/             @d3scope/svelte: thin Svelte 5 wrappers around core
 │  └─ plugin-template/    starter kit copied into external plugin repos
+├─ plugins/               official core plugins, built ONLY on the Plugin API
+│  ├─ treemap/            @d3scope/plugin-treemap (with drill-down)
+│  └─ brush/              @d3scope/plugin-brush (time range linked to other charts)
 ├─ apps/
 │  └─ playground/         Svelte + Vite web app: try the library in the
 │                         browser before installing it (see §8)
@@ -45,20 +51,33 @@ Rules:
   dependencies are `d3-*` modules (ISC).
 - Framework bindings (`@d3scope/svelte`, and possibly others later) depend on
   core, never the other way round.
+- Core plugins (`plugins/*`) import only `@d3scope/core/plugin`, never core
+  internals. This tests the Plugin API on real plugins (see §4).
 - Packages are ESM-only, written in strict TypeScript, and ship `.d.ts` files.
 
 ## 3. Core modules (`@d3scope/core`)
 
-| Module         | Responsibility                                                               |
-| -------------- | ---------------------------------------------------------------------------- |
-| `scales/`      | Thin wrappers over `d3-scale` with shared defaults (time, linear, band, log) |
-| `axes/`        | Axis rendering, tick formatting, locale support                              |
-| `legends/`     | Categorical and continuous legends                                           |
-| `charts/`      | Built-in charts: **bar** first, then line, area, pie/donut, scatter          |
-| `interaction/` | Tooltip, hover, click, zoom/pan, data updates (`chart.update(data)`)         |
-| `theme/`       | Design tokens (palette, fonts, spacing) applied via CSS variables            |
-| `export/`      | PNG and SVG export (§5)                                                      |
-| `plugins/`     | Plugin registry and public Plugin API (§4)                                   |
+| Module         | Responsibility                                                                    |
+| -------------- | --------------------------------------------------------------------------------- |
+| `scales/`      | Thin wrappers over `d3-scale` with shared defaults (time, linear, band, log)      |
+| `axes/`        | Axis rendering, tick formatting, locale support                                   |
+| `legends/`     | Categorical and continuous legends                                                |
+| `charts/`      | Built-in charts: **bar** first, then line, area, pie/donut, scatter, sparkline    |
+| `interaction/` | Tooltip, crosshair, hover, click, zoom/pan, data updates (`chart.update(data)`)   |
+| `format/`      | Locale-aware number, currency, percent and date formatting (see below)            |
+| `theme/`       | Design tokens (palette, fonts, spacing) applied via CSS variables. v1: light only |
+| `export/`      | PNG and SVG export (§5)                                                           |
+| `plugins/`     | Plugin registry and public Plugin API (§4)                                        |
+
+**Locale.** The default is **`fr-FR`** (`128 430 €`, `+2,4 %`, `12 mars`). It can
+be changed globally with `configure({ locale: 'en-US' })` or per chart with a
+`locale` option, so apps can expose it in their settings. It is built on
+`d3-format` (`formatLocale`) and `d3-time-format` (`timeFormatLocale`), both ISC.
+Core ships `fr-FR` and `en-US`, and other locales can be registered.
+
+**Theme.** v1 ships a **light** theme only. Tokens are named by role
+(`--d3s-surface`, `--d3s-text`, `--d3s-positive`, …) rather than by color, so a
+**dark theme in v2** is just a second token set, with no chart code changes.
 
 Public API sketch (not final):
 
@@ -112,6 +131,19 @@ Guarantees:
 - Core checks `apiVersion` and refuses incompatible plugins with a clear error.
 - Plugins cannot touch core internals. Only symbols exported from
   `@d3scope/core/plugin` count as the API.
+
+Plugin tiers:
+
+| Tier                                    | Where                                       | License                                               | Examples                                     |
+| --------------------------------------- | ------------------------------------------- | ----------------------------------------------------- | -------------------------------------------- |
+| **Core plugins** (official)             | `plugins/` in this repo, released with core | AGPL-3.0-or-later                                     | treemap, brush                               |
+| **Domain plugins** (official, specific) | separate repos                              | AGPL-3.0-or-later (or as decided per plugin)          | `d3scope-plugin-finance` (candlestick, OHLC) |
+| **Third-party plugins**                 | anywhere                                    | any, including closed source (`LICENSE-EXCEPTION.md`) | custom charts, themes, palettes              |
+
+A chart goes into **core** if most apps need it (bar, line, area, pie, scatter,
+sparkline). It goes into a **core plugin** if it is generic but not needed by
+everyone (treemap, brush). It goes into a **domain plugin** if it only makes
+sense in one field (finance).
 
 ## 5. Export
 
@@ -229,29 +261,38 @@ and fails if:
 
 ## 9. Roadmap (this repository)
 
-1. **init**: license ✅, README ✅, PLAN (this doc), workspace scaffold, lint/format, CI.
+1. **init** ✅: license, README, PLAN, workspace scaffold, lint/format, CI.
 2. **core**:
    1. sketchboards (3 iterations max per use case, validated before any UI code)
-   2. scales, axes and legends
-   3. bar chart
-   4. tooltip and click interactions
-   5. PNG/SVG export
-   6. Plugin API v1 + `plugin-template`
-   7. playground v1 (self-test, runs locally)
+   2. `format/` (locale, fr-FR default) and light theme tokens
+   3. scales, axes and legends
+   4. bar chart
+   5. tooltip, crosshair and click interactions
+   6. line/area (time scale), pie/donut, sparkline
+   7. PNG/SVG export
+   8. Plugin API v1 + `plugin-template`
+   9. core plugins: treemap, brush
+   10. playground v1 (self-test, runs locally)
 3. **polish**: more chart types, `motion` animation driver (§6), WASM
    benchmarks (§7), `<d3scope-chart>` custom element, optional online
    playground hosting, docs, first `v0.x` release.
+4. **v2**: dark theme (second token set).
 
 Portfolio, Stats and Company follow their own roadmaps in their own
-repositories.
+repositories. The finance plugin is started once Plugin API v1 exists.
 
 ## 10. Decisions
 
-| #   | Question                         | Decision                                                                                          |
-| --- | -------------------------------- | ------------------------------------------------------------------------------------------------- |
-| 1   | Animation library                | `d3-transition` for data transitions + `motion` (motion.dev) for UI motion. No GSAP (proprietary) |
-| 2   | Tauri app?                       | **No.** The self-test is a web playground (no download). Rust only after a WASM ADR               |
-| 3   | Lint / format                    | ESLint + Prettier (mature Svelte support)                                                         |
-| 4   | Framework bindings               | **Svelte** first. React/Vue only on demand                                                        |
-| 5   | `<d3scope-chart>` custom element | Deferred to the polish phase, after Plugin API v1                                                 |
-| 6   | Playground hosting               | Not needed for now; the playground runs locally. Online hosting is optional, later                |
+| #   | Question                                    | Decision                                                                                                |
+| --- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| 1   | Animation library                           | `d3-transition` for data transitions + `motion` (motion.dev) for UI motion. No GSAP (proprietary)       |
+| 2   | Tauri app?                                  | **No.** The self-test is a web playground (no download). Rust only after a WASM ADR                     |
+| 3   | Lint / format                               | ESLint + Prettier (mature Svelte support)                                                               |
+| 4   | Framework bindings                          | **Svelte** first. React/Vue only on demand                                                              |
+| 5   | `<d3scope-chart>` custom element            | Deferred to the polish phase, after Plugin API v1                                                       |
+| 6   | Playground hosting                          | Not needed for now; the playground runs locally. Online hosting is optional, later                      |
+| 7   | Scope of the example apps                   | Portfolio / Stats / Company are examples. D3SCOPE builds charts + structure, not the apps               |
+| 8   | Treemap, brush                              | **Core plugins** in `plugins/`, built only on the Plugin API                                            |
+| 9   | Finance-specific charts (candlestick, KPIs) | Out of the core. Candlestick goes into `d3scope-plugin-finance` (separate repo). KPIs belong to the app |
+| 10  | Locale                                      | `fr-FR` by default, configurable globally (`configure({ locale })`) or per chart                        |
+| 11  | Theme                                       | Light only in v1, dark in v2 (role-based tokens)                                                        |
