@@ -81,13 +81,18 @@ Only open-source dependencies whose licenses are compatible with the
 AGPL-3.0 are allowed, for example MIT, ISC, BSD-2-Clause, BSD-3-Clause,
 Apache-2.0, MPL-2.0, LGPL-3.0 and GPL-3.0. Plugins are exempt.
 
-Dependency checks (they run once `package.json` exists):
+Dev-only tools (linters, test runners) never ship in the build and don't
+affect the project license. They may also use a few other permissive licenses,
+such as BlueOak-1.0.0. The exact allowlists are in
+[`scripts/check-licenses.mjs`](./scripts/check-licenses.mjs).
+
+Dependency checks:
 
 ```bash
-pnpm audit            # known vulnerabilities
-pnpm licenses list    # license of every dependency
-cargo audit           # Rust advisories (cargo install cargo-audit)
+pnpm licenses:check   # fail if a dependency license is not allowed
+pnpm audit --prod     # known vulnerabilities in runtime dependencies
+cargo audit           # Rust advisories, once Rust code exists (cargo install cargo-audit)
 cargo deny check licenses   # Rust license allowlist (cargo install cargo-deny)
 ```
 
-These checks will also run in CI.
+`pnpm licenses:check` and `pnpm audit --prod` run in CI on every pull request.

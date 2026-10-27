@@ -23,7 +23,7 @@ export default tseslint.config(
   },
   {
     // Plain JS config files are not part of any tsconfig.
-    files: ['**/*.js'],
+    files: ['**/*.{js,mjs,cjs}'],
     ...tseslint.configs.disableTypeChecked,
   },
   // Must stay last: turns off rules that conflict with Prettier.
