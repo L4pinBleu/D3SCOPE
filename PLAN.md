@@ -14,13 +14,13 @@ use D3SCOPE as a dependency. The apps are **examples**: their sketchboards
 (`docs/sketchboards/`) only decide what the library must provide, and
 D3SCOPE does not build the apps themselves.
 
-| Project             | Purpose                                                                                        |
-| ------------------- | ---------------------------------------------------------------------------------------------- |
-| Portfolio (app)     | Personal finance and net-worth dashboards                                                      |
-| Stats (app)         | A free, simpler alternative to R, MATLAB or Statistica                                         |
-| Company (app)       | Branded charts that follow company constraints (logo, palettes, formats)                       |
-| Finance plugin      | `d3scope-plugin-finance`: candlestick/OHLC and finance helpers (too specific for the core)     |
-| Third-party plugins | Extra chart types, themes and palettes. They may be closed source (see `LICENSE-EXCEPTION.md`) |
+| Project                 | Purpose                                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------------------------ |
+| Portfolio (example app) | Personal finance dashboards. Sketchboard **validated** (iteration 2)                                   |
+| Stats (example app)     | A free, simpler alternative to R, MATLAB or Statistica                                                 |
+| Company (plugin test)   | Branding (logo, palettes, formats). Used only as a **test case for writing a plugin** (no sketchboard) |
+| Domain plugins          | Finance (candlestick, OHLC), stats (box plot, QQ plot…). Built by others on top of D3SCOPE (§4)        |
+| Third-party plugins     | Extra chart types, themes and palettes. They may be closed source (see `LICENSE-EXCEPTION.md`)         |
 
 ## 2. Repository layout (pnpm workspaces)
 
@@ -134,16 +134,26 @@ Guarantees:
 
 Plugin tiers:
 
-| Tier                                    | Where                                       | License                                               | Examples                                     |
-| --------------------------------------- | ------------------------------------------- | ----------------------------------------------------- | -------------------------------------------- |
-| **Core plugins** (official)             | `plugins/` in this repo, released with core | AGPL-3.0-or-later                                     | treemap, brush                               |
-| **Domain plugins** (official, specific) | separate repos                              | AGPL-3.0-or-later (or as decided per plugin)          | `d3scope-plugin-finance` (candlestick, OHLC) |
-| **Third-party plugins**                 | anywhere                                    | any, including closed source (`LICENSE-EXCEPTION.md`) | custom charts, themes, palettes              |
+| Tier                        | Where                                                          | In D3SCOPE's scope?                          | Examples                                                |
+| --------------------------- | -------------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------- |
+| **Core plugins** (official) | `plugins/` in this repo, released with core, AGPL-3.0-or-later | ✅ yes                                       | treemap, brush                                          |
+| **Domain plugins**          | separate repos, any license (`LICENSE-EXCEPTION.md`)           | ❌ no, built by others **on top of** D3SCOPE | finance (candlestick, OHLC), stats (box plot, QQ plot…) |
+| **Third-party plugins**     | anywhere, any license                                          | ❌ no                                        | custom charts, themes, palettes, branding               |
 
-A chart goes into **core** if most apps need it (bar, line, area, pie, scatter,
-sparkline). It goes into a **core plugin** if it is generic but not needed by
-everyone (treemap, brush). It goes into a **domain plugin** if it only makes
-sense in one field (finance).
+Where a chart belongs:
+
+- **Core:** every "simple", general-purpose chart (bar, line, area, pie/donut,
+  scatter, sparkline, …).
+- **Core plugin:** generic utilities that not every app needs (treemap, brush).
+- **Domain plugin:** charts that only make sense in one field (finance,
+  statistics, …). They are **not** developed in D3SCOPE.
+
+**What D3SCOPE owes domain plugins.** Its job is to provide the **tools and
+building blocks** for writing them: the Plugin API, `plugin-template`, and
+reusable primitives (scales, axes, legends, tooltip, theme tokens, `format/`,
+export, interactions). A finance or stats plugin is then a thin layer on top.
+The example-app sketchboards (`docs/sketchboards/`) are used to find which
+primitives are missing.
 
 ## 5. Export
 
@@ -263,7 +273,7 @@ and fails if:
 
 1. **init** ✅: license, README, PLAN, workspace scaffold, lint/format, CI.
 2. **core**:
-   1. sketchboards (3 iterations max per use case, validated before any UI code)
+   1. sketchboards: Portfolio ✅ (iteration 2), Stats; Company is a plugin test case only (3 iterations max, validated before any UI code)
    2. `format/` (locale, fr-FR default) and light theme tokens
    3. scales, axes and legends
    4. bar chart
@@ -279,20 +289,23 @@ and fails if:
 4. **v2**: dark theme (second token set).
 
 Portfolio, Stats and Company follow their own roadmaps in their own
-repositories. The finance plugin is started once Plugin API v1 exists.
+repositories. Domain plugins (finance, stats…) are out of scope: D3SCOPE only
+provides the Plugin API, `plugin-template` and the building blocks they need.
 
 ## 10. Decisions
 
-| #   | Question                                    | Decision                                                                                                |
-| --- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| 1   | Animation library                           | `d3-transition` for data transitions + `motion` (motion.dev) for UI motion. No GSAP (proprietary)       |
-| 2   | Tauri app?                                  | **No.** The self-test is a web playground (no download). Rust only after a WASM ADR                     |
-| 3   | Lint / format                               | ESLint + Prettier (mature Svelte support)                                                               |
-| 4   | Framework bindings                          | **Svelte** first. React/Vue only on demand                                                              |
-| 5   | `<d3scope-chart>` custom element            | Deferred to the polish phase, after Plugin API v1                                                       |
-| 6   | Playground hosting                          | Not needed for now; the playground runs locally. Online hosting is optional, later                      |
-| 7   | Scope of the example apps                   | Portfolio / Stats / Company are examples. D3SCOPE builds charts + structure, not the apps               |
-| 8   | Treemap, brush                              | **Core plugins** in `plugins/`, built only on the Plugin API                                            |
-| 9   | Finance-specific charts (candlestick, KPIs) | Out of the core. Candlestick goes into `d3scope-plugin-finance` (separate repo). KPIs belong to the app |
-| 10  | Locale                                      | `fr-FR` by default, configurable globally (`configure({ locale })`) or per chart                        |
-| 11  | Theme                                       | Light only in v1, dark in v2 (role-based tokens)                                                        |
+| #   | Question                                 | Decision                                                                                                                                                   |
+| --- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Animation library                        | `d3-transition` for data transitions + `motion` (motion.dev) for UI motion. No GSAP (proprietary)                                                          |
+| 2   | Tauri app?                               | **No.** The self-test is a web playground (no download). Rust only after a WASM ADR                                                                        |
+| 3   | Lint / format                            | ESLint + Prettier (mature Svelte support)                                                                                                                  |
+| 4   | Framework bindings                       | **Svelte** first. React/Vue only on demand                                                                                                                 |
+| 5   | `<d3scope-chart>` custom element         | Deferred to the polish phase, after Plugin API v1                                                                                                          |
+| 6   | Playground hosting                       | Not needed for now; the playground runs locally. Online hosting is optional, later                                                                         |
+| 7   | Scope of the example apps                | Portfolio / Stats / Company are examples. D3SCOPE builds charts + structure, not the apps                                                                  |
+| 8   | Treemap, brush                           | **Core plugins** in `plugins/`, built only on the Plugin API                                                                                               |
+| 9   | Domain-specific charts (finance, stats…) | **Out of D3SCOPE scope.** Built by others as domain plugins; D3SCOPE provides the Plugin API, template and building blocks. KPIs belong to the app         |
+| 10  | Locale                                   | `fr-FR` by default, configurable globally (`configure({ locale })`) or per chart                                                                           |
+| 11  | Theme                                    | Light only in v1, dark in v2 (role-based tokens)                                                                                                           |
+| 12  | Simple vs specific charts                | All "simple", general-purpose charts live in **core** (sparkline included). Only generic utilities go to core plugins, and domain charts to domain plugins |
+| 13  | Company                                  | No sketchboard. It is used as a test case for writing a plugin                                                                                             |
