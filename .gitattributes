@@ -1,0 +1,4 @@
+# Sketchboard sources/previews are generated: collapse them in PR diffs
+*.excalidraw linguist-generated=true
+docs/sketchboards/**/*.svg linguist-generated=true
+pnpm-lock.yaml linguist-generated=true
