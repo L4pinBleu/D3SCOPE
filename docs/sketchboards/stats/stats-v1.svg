@@ -1,0 +1,276 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-20 -20 3100 1290" width="3100" height="1290" font-family="Segoe Print, Comic Sans MS, Chalkboard SE, sans-serif">
+<rect x="-20" y="-20" width="3100" height="1290" fill="#ffffff"/>
+<text x="0" y="0" font-size="32" fill="#1e1e1e" font-weight="700"><tspan x="0" dy="32">D3SCOPE - Stats sketchboard - iteration 1/3</tspan></text>
+<text x="0" y="50" font-size="18" fill="#495057" font-weight="400"><tspan x="0" dy="18">Example app only (free alternative to R / MATLAB / Statistica). D3SCOPE builds the charts + building blocks; the stats plugin and the app are NOT D3SCOPE.</tspan></text>
+<text x="0" y="80" font-size="18" fill="#495057" font-weight="400"><tspan x="0" dy="18">Three layout directions. Colours show who provides each piece. Fake sample data (iris-like).</tspan></text>
+<rect x="0" y="130" width="44" height="34" rx="10" fill="#a5d8ff" fill-opacity="0.45" stroke="#1971c2" stroke-width="2"/>
+<text x="56" y="136" font-size="18" fill="#1e1e1e" font-weight="400"><tspan x="56" dy="18">@d3scope/core: simple charts + building blocks</tspan></text>
+<rect x="760" y="130" width="44" height="34" rx="10" fill="#d0bfff" fill-opacity="0.45" stroke="#6741d9" stroke-width="2"/>
+<text x="816" y="136" font-size="18" fill="#1e1e1e" font-weight="400"><tspan x="816" dy="18">Core plugin (official): generic utilities, e.g. brush</tspan></text>
+<rect x="0" y="186" width="44" height="34" rx="10" fill="#ffd8a8" fill-opacity="0.45" stroke="#d9480f" stroke-width="2"/>
+<text x="56" y="192" font-size="18" fill="#1e1e1e" font-weight="400"><tspan x="56" dy="18">Stats plugin: domain charts - OUT of D3SCOPE scope</tspan></text>
+<rect x="760" y="186" width="44" height="34" rx="10" fill="#e9ecef" fill-opacity="0.45" stroke="#868e96" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="816" y="192" font-size="18" fill="#1e1e1e" font-weight="400"><tspan x="816" dy="18">The app itself - NOT D3SCOPE (tables, panels, console)</tspan></text>
+<rect x="0" y="300" width="960" height="760" rx="10" fill="#f8f9fa" fill-opacity="1.0" stroke="#868e96" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="20" y="315" font-size="24" fill="#1e1e1e" font-weight="700"><tspan x="20" dy="24">A - Workbench (RStudio / JASP-like)</tspan></text>
+<rect x="20" y="360" width="200" height="330" rx="10" fill="#e9ecef" fill-opacity="0.45" stroke="#868e96" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="30" y="366" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="30" dy="14">Data + variables</tspan></text>
+<text x="32" y="390" font-size="16" fill="#1e1e1e" font-weight="400"><tspan x="32" dy="16">sepal_len  num</tspan><tspan x="32" dy="20.0">sepal_wid  num</tspan><tspan x="32" dy="20.0">petal_len  num</tspan><tspan x="32" dy="20.0">petal_wid  num</tspan><tspan x="32" dy="20.0">species    cat</tspan><tspan x="32" dy="20.0"></tspan><tspan x="32" dy="20.0">150 rows</tspan></text>
+<rect x="20" y="700" width="200" height="230" rx="10" fill="#e9ecef" fill-opacity="0.45" stroke="#868e96" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="30" y="706" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="30" dy="14">Options</tspan></text>
+<text x="32" y="730" font-size="16" fill="#1e1e1e" font-weight="400"><tspan x="32" dy="16">Analysis:</tspan><tspan x="32" dy="20.0"> Descriptives</tspan><tspan x="32" dy="20.0">Bins: 20</tspan><tspan x="32" dy="20.0">Group by:</tspan><tspan x="32" dy="20.0"> species</tspan><tspan x="32" dy="20.0">CI: 95 %</tspan></text>
+<rect x="240" y="360" width="690" height="570" rx="10" fill="#a5d8ff" fill-opacity="0.45" stroke="#1971c2" stroke-width="2"/>
+<text x="250" y="366" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="250" dy="14">Facet grid / small multiples layout [core]</tspan></text>
+<rect x="250" y="390" width="325" height="260" rx="10" fill="#a5d8ff" fill-opacity="0.45" stroke="#1971c2" stroke-width="2"/>
+<text x="260" y="396" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="260" dy="14">Histogram [core]</tspan></text>
+<polyline points="280,430 280,620 545,620" fill="none" fill-opacity="0.5" stroke="#495057" stroke-width="1" stroke-linejoin="round"/>
+<rect x="282.0" y="608.5129253014381" width="22.5" height="11.487074698561893" rx="10" fill="#4a9eed" fill-opacity="0.7" stroke="#1971c2" stroke-width="1"/>
+<rect x="308.5" y="598.9502527166076" width="22.5" height="21.04974728339239" rx="10" fill="#4a9eed" fill-opacity="0.7" stroke="#1971c2" stroke-width="1"/>
+<rect x="335.0" y="567.2644291173883" width="22.5" height="52.73557088261163" rx="10" fill="#4a9eed" fill-opacity="0.7" stroke="#1971c2" stroke-width="1"/>
+<rect x="361.5" y="506.26337485233114" width="22.5" height="113.73662514766889" rx="10" fill="#4a9eed" fill-opacity="0.7" stroke="#1971c2" stroke-width="1"/>
+<rect x="388.0" y="448.65103969995425" width="22.5" height="171.34896030004575" rx="10" fill="#4a9eed" fill-opacity="0.7" stroke="#1971c2" stroke-width="1"/>
+<rect x="414.5" y="448.65103969995425" width="22.5" height="171.34896030004575" rx="10" fill="#4a9eed" fill-opacity="0.7" stroke="#1971c2" stroke-width="1"/>
+<rect x="441.0" y="506.26337485233114" width="22.5" height="113.73662514766889" rx="10" fill="#4a9eed" fill-opacity="0.7" stroke="#1971c2" stroke-width="1"/>
+<rect x="467.5" y="567.2644291173883" width="22.5" height="52.73557088261163" rx="10" fill="#4a9eed" fill-opacity="0.7" stroke="#1971c2" stroke-width="1"/>
+<rect x="494.0" y="598.9502527166076" width="22.5" height="21.04974728339239" rx="10" fill="#4a9eed" fill-opacity="0.7" stroke="#1971c2" stroke-width="1"/>
+<rect x="520.5" y="608.5129253014381" width="22.5" height="11.487074698561893" rx="10" fill="#4a9eed" fill-opacity="0.7" stroke="#1971c2" stroke-width="1"/>
+<rect x="595" y="390" width="325" height="260" rx="10" fill="#a5d8ff" fill-opacity="0.45" stroke="#1971c2" stroke-width="2"/>
+<text x="605" y="396" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="605" dy="14">Scatter [core] + regression + CI [stats]</tspan></text>
+<polyline points="625,430 625,620 890,620" fill="none" fill-opacity="0.5" stroke="#495057" stroke-width="1" stroke-linejoin="round"/>
+<ellipse cx="715.4841144127092" cy="528.5992898266712" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="655.526054370209" cy="548.7190593705749" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="766.0578580271454" cy="525.2468121061823" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="759.2734223656768" cy="519.8199969910377" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="647.1927145384134" cy="578.4031891808169" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="659.8850536825119" cy="564.3576059674311" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="739.4978266104896" cy="528.6621571396611" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="691.492493058773" cy="561.1820487527775" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="787.892823543733" cy="490.6907761669812" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="732.858293204211" cy="542.839672279384" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="871.0868426839114" cy="443.7592442182224" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="707.3218147901048" cy="536.8295398148317" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="672.6548373807489" cy="550.6543291938549" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="832.8961366501275" cy="482.6606920056971" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="681.3532416118591" cy="579.0265152497118" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="727.0668139400868" cy="550.0647950325193" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="768.8870550717295" cy="514.5670987046052" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="687.3711530074094" cy="552.8644645227793" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="800.525393603856" cy="519.830718088615" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="777.9065044465718" cy="509.6958648657444" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="746.33447376443" cy="539.1594286882208" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="804.9601724445027" cy="475.64382496722754" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="696.4670178072334" cy="569.8862325845238" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="846.9702926942628" cy="495.91880692061375" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="812.2227015312534" cy="512.7654518622828" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="666.4086881138085" cy="517.655529441543" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<polygon points="625,572.5 890,458.5 890,477.5 625,591.5" fill="#ffd8a8" fill-opacity="0.5" stroke="#d9480f" stroke-width="1" stroke-linejoin="round"/>
+<polyline points="625,582.0 890,468.0" fill="none" fill-opacity="0.5" stroke="#d9480f" stroke-width="3" stroke-linejoin="round"/>
+<rect x="250" y="670" width="325" height="260" rx="10" fill="#ffd8a8" fill-opacity="0.45" stroke="#d9480f" stroke-width="2"/>
+<text x="260" y="676" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="260" dy="14">Box plot [stats plugin]</tspan></text>
+<polyline points="280,710 280,900 545,900" fill="none" fill-opacity="0.5" stroke="#495057" stroke-width="1" stroke-linejoin="round"/>
+<polyline points="324.1666666666667,871.5 324.1666666666667,748.0" fill="none" fill-opacity="0.5" stroke="#d9480f" stroke-width="1" stroke-linejoin="round"/>
+<rect x="302.08333333333337" y="767.0" width="44.166666666666664" height="47.5" rx="10" fill="#ffd8a8" fill-opacity="1.0" stroke="#d9480f" stroke-width="2"/>
+<polyline points="302.08333333333337,790.75 346.25000000000006,790.75" fill="none" fill-opacity="0.5" stroke="#d9480f" stroke-width="3" stroke-linejoin="round"/>
+<polyline points="412.5,856.3 412.5,732.8" fill="none" fill-opacity="0.5" stroke="#d9480f" stroke-width="1" stroke-linejoin="round"/>
+<rect x="390.4166666666667" y="755.6" width="44.166666666666664" height="43.69999999999993" rx="10" fill="#ffd8a8" fill-opacity="1.0" stroke="#d9480f" stroke-width="2"/>
+<polyline points="390.4166666666667,777.45 434.58333333333337,777.45" fill="none" fill-opacity="0.5" stroke="#d9480f" stroke-width="3" stroke-linejoin="round"/>
+<polyline points="500.8333333333333,841.1 500.8333333333333,717.6" fill="none" fill-opacity="0.5" stroke="#d9480f" stroke-width="1" stroke-linejoin="round"/>
+<rect x="478.75" y="744.2" width="44.166666666666664" height="39.89999999999998" rx="10" fill="#ffd8a8" fill-opacity="1.0" stroke="#d9480f" stroke-width="2"/>
+<polyline points="478.75,764.1500000000001 522.9166666666666,764.1500000000001" fill="none" fill-opacity="0.5" stroke="#d9480f" stroke-width="3" stroke-linejoin="round"/>
+<rect x="595" y="670" width="325" height="260" rx="10" fill="#ffd8a8" fill-opacity="0.45" stroke="#d9480f" stroke-width="2"/>
+<text x="605" y="676" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="605" dy="14">QQ plot [stats plugin]</tspan></text>
+<polyline points="625,710 625,900 890,900" fill="none" fill-opacity="0.5" stroke="#495057" stroke-width="1" stroke-linejoin="round"/>
+<polyline points="625,900 890,710" fill="none" fill-opacity="0.5" stroke="#868e96" stroke-width="1" stroke-linejoin="round"/>
+<ellipse cx="634.4642857142857" cy="890.7900810306394" rx="4.0" ry="4.0" fill="#d9480f" stroke="#d9480f" stroke-width="1"/>
+<ellipse cx="653.3928571428571" cy="872.8087315300359" rx="4.0" ry="4.0" fill="#d9480f" stroke="#d9480f" stroke-width="1"/>
+<ellipse cx="672.3214285714286" cy="856.0635338635086" rx="4.0" ry="4.0" fill="#d9480f" stroke="#d9480f" stroke-width="1"/>
+<ellipse cx="691.25" cy="841.1285571527138" rx="4.0" ry="4.0" fill="#d9480f" stroke="#d9480f" stroke-width="1"/>
+<ellipse cx="710.1785714285714" cy="828.2504390260508" rx="4.0" ry="4.0" fill="#d9480f" stroke="#d9480f" stroke-width="1"/>
+<ellipse cx="729.1071428571429" cy="817.303773977909" rx="4.0" ry="4.0" fill="#d9480f" stroke="#d9480f" stroke-width="1"/>
+<ellipse cx="748.0357142857143" cy="807.8137966283196" rx="4.0" ry="4.0" fill="#d9480f" stroke="#d9480f" stroke-width="1"/>
+<ellipse cx="766.9642857142858" cy="799.042256950958" rx="4.0" ry="4.0" fill="#d9480f" stroke="#d9480f" stroke-width="1"/>
+<ellipse cx="785.8928571428571" cy="790.1209544186593" rx="4.0" ry="4.0" fill="#d9480f" stroke="#d9480f" stroke-width="1"/>
+<ellipse cx="804.8214285714286" cy="780.2087775041241" rx="4.0" ry="4.0" fill="#d9480f" stroke="#d9480f" stroke-width="1"/>
+<ellipse cx="823.75" cy="768.6438433413821" rx="4.0" ry="4.0" fill="#d9480f" stroke="#d9480f" stroke-width="1"/>
+<ellipse cx="842.6785714285714" cy="755.0632186330546" rx="4.0" ry="4.0" fill="#d9480f" stroke="#d9480f" stroke-width="1"/>
+<ellipse cx="861.6071428571429" cy="739.4685667699157" rx="4.0" ry="4.0" fill="#d9480f" stroke="#d9480f" stroke-width="1"/>
+<ellipse cx="880.5357142857142" cy="722.2258469579392" rx="4.0" ry="4.0" fill="#d9480f" stroke="#d9480f" stroke-width="1"/>
+<rect x="20" y="945" width="920" height="95" rx="10" fill="#e9ecef" fill-opacity="0.45" stroke="#868e96" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="30" y="951" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="30" dy="14">Results / console [app]</tspan></text>
+<text x="32" y="972" font-size="16" fill="#1e1e1e" font-weight="400"><tspan x="32" dy="16">sepal_len: n = 150   mean = 5,84   sd = 0,83   median = 5,80</tspan><tspan x="32" dy="20.0">r(sepal_len, petal_len) = 0,87   p &lt; 0,001</tspan></text>
+<rect x="1050" y="300" width="960" height="760" rx="10" fill="#f8f9fa" fill-opacity="1.0" stroke="#868e96" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="1070" y="315" font-size="24" fill="#1e1e1e" font-weight="700"><tspan x="1070" dy="24">B - Notebook / report (Jupyter / Quarto-like)</tspan></text>
+<rect x="1070" y="360" width="920" height="60" rx="10" fill="#e9ecef" fill-opacity="0.45" stroke="#868e96" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="1080" y="366" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="1080" dy="14">[1] cell</tspan></text>
+<text x="1170" y="380" font-size="16" fill="#1e1e1e" font-weight="400"><tspan x="1170" dy="16">scatter(iris, x = petal_len, y = petal_wid, facet = species)</tspan></text>
+<rect x="1070" y="435" width="920" height="230" rx="10" fill="#a5d8ff" fill-opacity="0.45" stroke="#1971c2" stroke-width="2"/>
+<text x="1080" y="441" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="1080" dy="14">Faceted scatter: 3 small multiples sharing scales [core]</tspan></text>
+<rect x="1090" y="470" width="280" height="180" rx="10" fill="#a5d8ff" fill-opacity="0.45" stroke="#1971c2" stroke-width="2"/>
+<text x="1100" y="476" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="1100" dy="14">setosa</tspan></text>
+<polyline points="1120,500 1120,630 1340,630" fill="none" fill-opacity="0.5" stroke="#495057" stroke-width="1" stroke-linejoin="round"/>
+<ellipse cx="1213.788318713475" cy="570.4464477057319" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="1227.8146938942095" cy="572.4862422701783" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="1138.7630368953926" cy="607.1290643568836" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="1244.4591361749222" cy="577.202871193626" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="1304.344606742516" cy="545.6746498895604" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="1248.6852356667937" cy="541.7650645714589" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="1245.8192504479334" cy="580.9466922706847" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="1318.0468568313715" cy="527.6976222735202" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="1224.8714708090895" cy="568.9444130085294" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="1269.8954202182758" cy="554.407009157509" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="1259.1315131964784" cy="532.9567565879719" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="1187.3499153546416" cy="581.0639618486496" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="1207.3867056044487" cy="574.2401345088006" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="1222.4156666873537" cy="569.8691407717849" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<rect x="1390" y="470" width="280" height="180" rx="10" fill="#a5d8ff" fill-opacity="0.45" stroke="#1971c2" stroke-width="2"/>
+<text x="1400" y="476" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="1400" dy="14">versicolor</tspan></text>
+<polyline points="1420,500 1420,630 1640,630" fill="none" fill-opacity="0.5" stroke="#495057" stroke-width="1" stroke-linejoin="round"/>
+<ellipse cx="1464.2735790234958" cy="585.2793002577162" rx="4.0" ry="4.0" fill="#e8590c" stroke="#e8590c" stroke-width="1"/>
+<ellipse cx="1583.1101317175592" cy="543.4326908844323" rx="4.0" ry="4.0" fill="#e8590c" stroke="#e8590c" stroke-width="1"/>
+<ellipse cx="1456.6093639596995" cy="590.8457099841779" rx="4.0" ry="4.0" fill="#e8590c" stroke="#e8590c" stroke-width="1"/>
+<ellipse cx="1603.5415508770072" cy="527.2760899838976" rx="4.0" ry="4.0" fill="#e8590c" stroke="#e8590c" stroke-width="1"/>
+<ellipse cx="1446.9550976376274" cy="608.4707314346665" rx="4.0" ry="4.0" fill="#e8590c" stroke="#e8590c" stroke-width="1"/>
+<ellipse cx="1605.9099976354196" cy="533.4493177444498" rx="4.0" ry="4.0" fill="#e8590c" stroke="#e8590c" stroke-width="1"/>
+<ellipse cx="1593.2174078914768" cy="536.3812786888901" rx="4.0" ry="4.0" fill="#e8590c" stroke="#e8590c" stroke-width="1"/>
+<ellipse cx="1513.2287104079164" cy="578.0758865704925" rx="4.0" ry="4.0" fill="#e8590c" stroke="#e8590c" stroke-width="1"/>
+<ellipse cx="1502.0366907356618" cy="552.9370461979051" rx="4.0" ry="4.0" fill="#e8590c" stroke="#e8590c" stroke-width="1"/>
+<ellipse cx="1460.8823393466396" cy="609.0798602803601" rx="4.0" ry="4.0" fill="#e8590c" stroke="#e8590c" stroke-width="1"/>
+<ellipse cx="1465.8911102410934" cy="586.7646577010298" rx="4.0" ry="4.0" fill="#e8590c" stroke="#e8590c" stroke-width="1"/>
+<ellipse cx="1527.0226206075886" cy="557.581287779514" rx="4.0" ry="4.0" fill="#e8590c" stroke="#e8590c" stroke-width="1"/>
+<ellipse cx="1547.6464537389866" cy="558.8283131706756" rx="4.0" ry="4.0" fill="#e8590c" stroke="#e8590c" stroke-width="1"/>
+<ellipse cx="1513.9514072228149" cy="569.6336134505332" rx="4.0" ry="4.0" fill="#e8590c" stroke="#e8590c" stroke-width="1"/>
+<rect x="1690" y="470" width="280" height="180" rx="10" fill="#a5d8ff" fill-opacity="0.45" stroke="#1971c2" stroke-width="2"/>
+<text x="1700" y="476" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="1700" dy="14">virginica</tspan></text>
+<polyline points="1720,500 1720,630 1940,630" fill="none" fill-opacity="0.5" stroke="#495057" stroke-width="1" stroke-linejoin="round"/>
+<ellipse cx="1804.1122074331556" cy="600.6429346113812" rx="4.0" ry="4.0" fill="#2f9e44" stroke="#2f9e44" stroke-width="1"/>
+<ellipse cx="1867.7177441129236" cy="563.3453321315039" rx="4.0" ry="4.0" fill="#2f9e44" stroke="#2f9e44" stroke-width="1"/>
+<ellipse cx="1833.0673037480142" cy="576.9012946651782" rx="4.0" ry="4.0" fill="#2f9e44" stroke="#2f9e44" stroke-width="1"/>
+<ellipse cx="1741.6905928583105" cy="608.1424353456688" rx="4.0" ry="4.0" fill="#2f9e44" stroke="#2f9e44" stroke-width="1"/>
+<ellipse cx="1909.1075359914746" cy="532.4904949805017" rx="4.0" ry="4.0" fill="#2f9e44" stroke="#2f9e44" stroke-width="1"/>
+<ellipse cx="1888.9788779969201" cy="567.5058250137147" rx="4.0" ry="4.0" fill="#2f9e44" stroke="#2f9e44" stroke-width="1"/>
+<ellipse cx="1808.6910235644712" cy="576.9598100352594" rx="4.0" ry="4.0" fill="#2f9e44" stroke="#2f9e44" stroke-width="1"/>
+<ellipse cx="1856.5893340057703" cy="552.3292077646283" rx="4.0" ry="4.0" fill="#2f9e44" stroke="#2f9e44" stroke-width="1"/>
+<ellipse cx="1743.3250686805002" cy="588.429689111488" rx="4.0" ry="4.0" fill="#2f9e44" stroke="#2f9e44" stroke-width="1"/>
+<ellipse cx="1763.1360311788753" cy="585.4184191624058" rx="4.0" ry="4.0" fill="#2f9e44" stroke="#2f9e44" stroke-width="1"/>
+<ellipse cx="1798.330623142004" cy="575.989162916919" rx="4.0" ry="4.0" fill="#2f9e44" stroke="#2f9e44" stroke-width="1"/>
+<ellipse cx="1760.9504565913267" cy="589.3992226599182" rx="4.0" ry="4.0" fill="#2f9e44" stroke="#2f9e44" stroke-width="1"/>
+<ellipse cx="1751.089944868474" cy="594.7183777513882" rx="4.0" ry="4.0" fill="#2f9e44" stroke="#2f9e44" stroke-width="1"/>
+<ellipse cx="1904.1178107200162" cy="536.7117677633505" rx="4.0" ry="4.0" fill="#2f9e44" stroke="#2f9e44" stroke-width="1"/>
+<rect x="1070" y="680" width="920" height="60" rx="10" fill="#e9ecef" fill-opacity="0.45" stroke="#868e96" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="1080" y="686" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="1080" dy="14">[2] cell</tspan></text>
+<text x="1170" y="700" font-size="16" fill="#1e1e1e" font-weight="400"><tspan x="1170" dy="16">corr(iris)  |&gt;  heatmap()</tspan></text>
+<rect x="1070" y="755" width="450" height="285" rx="10" fill="#a5d8ff" fill-opacity="0.45" stroke="#1971c2" stroke-width="2"/>
+<text x="1080" y="761" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="1080" dy="14">Heatmap (correlation matrix) [core?]</tspan></text>
+<rect x="1110.0" y="790.0" width="55.5" height="55.5" rx="10" fill="#1864ab" fill-opacity="1.0" stroke="#ffffff" stroke-width="1"/>
+<rect x="1110.0" y="847.5" width="55.5" height="55.5" rx="10" fill="#e7f5ff" fill-opacity="1.0" stroke="#ffffff" stroke-width="1"/>
+<rect x="1110.0" y="905.0" width="55.5" height="55.5" rx="10" fill="#e7f5ff" fill-opacity="1.0" stroke="#ffffff" stroke-width="1"/>
+<rect x="1110.0" y="962.5" width="55.5" height="55.5" rx="10" fill="#e7f5ff" fill-opacity="1.0" stroke="#ffffff" stroke-width="1"/>
+<rect x="1167.5" y="790.0" width="55.5" height="55.5" rx="10" fill="#4dabf7" fill-opacity="1.0" stroke="#ffffff" stroke-width="1"/>
+<rect x="1167.5" y="847.5" width="55.5" height="55.5" rx="10" fill="#1864ab" fill-opacity="1.0" stroke="#ffffff" stroke-width="1"/>
+<rect x="1167.5" y="905.0" width="55.5" height="55.5" rx="10" fill="#e7f5ff" fill-opacity="1.0" stroke="#ffffff" stroke-width="1"/>
+<rect x="1167.5" y="962.5" width="55.5" height="55.5" rx="10" fill="#e7f5ff" fill-opacity="1.0" stroke="#ffffff" stroke-width="1"/>
+<rect x="1225.0" y="790.0" width="55.5" height="55.5" rx="10" fill="#e7f5ff" fill-opacity="1.0" stroke="#ffffff" stroke-width="1"/>
+<rect x="1225.0" y="847.5" width="55.5" height="55.5" rx="10" fill="#4dabf7" fill-opacity="1.0" stroke="#ffffff" stroke-width="1"/>
+<rect x="1225.0" y="905.0" width="55.5" height="55.5" rx="10" fill="#1864ab" fill-opacity="1.0" stroke="#ffffff" stroke-width="1"/>
+<rect x="1225.0" y="962.5" width="55.5" height="55.5" rx="10" fill="#e7f5ff" fill-opacity="1.0" stroke="#ffffff" stroke-width="1"/>
+<rect x="1282.5" y="790.0" width="55.5" height="55.5" rx="10" fill="#4dabf7" fill-opacity="1.0" stroke="#ffffff" stroke-width="1"/>
+<rect x="1282.5" y="847.5" width="55.5" height="55.5" rx="10" fill="#e7f5ff" fill-opacity="1.0" stroke="#ffffff" stroke-width="1"/>
+<rect x="1282.5" y="905.0" width="55.5" height="55.5" rx="10" fill="#4dabf7" fill-opacity="1.0" stroke="#ffffff" stroke-width="1"/>
+<rect x="1282.5" y="962.5" width="55.5" height="55.5" rx="10" fill="#1864ab" fill-opacity="1.0" stroke="#ffffff" stroke-width="1"/>
+<text x="1360" y="800" font-size="16" fill="#1e1e1e" font-weight="400"><tspan x="1360" dy="16">colour scale +</tspan><tspan x="1360" dy="20.0">continuous</tspan><tspan x="1360" dy="20.0">legend [core]</tspan></text>
+<rect x="1540" y="755" width="450" height="285" rx="10" fill="#e9ecef" fill-opacity="0.45" stroke="#868e96" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="1550" y="761" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="1550" dy="14">Summary table [app]</tspan></text>
+<text x="1555" y="790" font-size="16" fill="#1e1e1e" font-weight="400"><tspan x="1555" dy="16">species     n    mean   sd</tspan><tspan x="1555" dy="20.0">setosa     50   5,01  0,35</tspan><tspan x="1555" dy="20.0">versicolor 50   5,94  0,52</tspan><tspan x="1555" dy="20.0">virginica  50   6,59  0,64</tspan></text>
+<text x="1555" y="920" font-size="16" fill="#1971c2" font-weight="400"><tspan x="1555" dy="16">Export: PNG 300 dpi / SVG</tspan><tspan x="1555" dy="20.0">for papers [core export]</tspan></text>
+<rect x="2100" y="300" width="960" height="760" rx="10" fill="#f8f9fa" fill-opacity="1.0" stroke="#868e96" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="2120" y="315" font-size="24" fill="#1e1e1e" font-weight="700"><tspan x="2120" dy="24">C - Analysis wizard + linked views (Statistica-like)</tspan></text>
+<rect x="2120" y="360" width="920" height="50" rx="10" fill="#e9ecef" fill-opacity="0.45" stroke="#868e96" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="2134" y="374" font-size="16" fill="#1e1e1e" font-weight="400"><tspan x="2134" dy="16">Menu:  Statistics &gt; Basic  |  Regression  |  ANOVA  |  Multivariate</tspan></text>
+<rect x="2120" y="425" width="280" height="300" rx="10" fill="#e9ecef" fill-opacity="0.45" stroke="#868e96" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="2130" y="431" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="2130" dy="14">Dialog: choose variables</tspan></text>
+<text x="2134" y="460" font-size="18" fill="#1e1e1e" font-weight="400"><tspan x="2134" dy="18">X:  petal_len  v</tspan><tspan x="2134" dy="22.5">Y:  petal_wid  v</tspan><tspan x="2134" dy="22.5">Group: species v</tspan><tspan x="2134" dy="22.5"></tspan><tspan x="2134" dy="22.5">[ OK ]</tspan></text>
+<rect x="2420" y="425" width="620" height="300" rx="10" fill="#a5d8ff" fill-opacity="0.45" stroke="#1971c2" stroke-width="2"/>
+<text x="2430" y="431" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="2430" dy="14">Scatter, 5 000 points: zoom/pan [core]</tspan></text>
+<rect x="2700" y="465" width="200" height="140" rx="10" fill="#d0bfff" fill-opacity="0.45" stroke="#6741d9" stroke-width="2"/>
+<text x="2710" y="471" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="2710" dy="14">brush [core plugin]</tspan></text>
+<polyline points="2450,465 2450,695 3010,695" fill="none" fill-opacity="0.5" stroke="#495057" stroke-width="1" stroke-linejoin="round"/>
+<ellipse cx="2787.490769845393" cy="556.4393648230418" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2653.0843312110655" cy="586.2700545006172" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2661.5383735222545" cy="568.0294705314519" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2978.5237717391756" cy="490.6868422954169" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2712.8586874166067" cy="592.9513286158088" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2529.5025588410767" cy="628.5188147653918" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2650.688462474473" cy="603.1457713981808" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2559.3650597053215" cy="583.3219107766521" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2489.640243406805" cy="615.050787689785" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2551.887679605142" cy="631.583539904272" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2751.7589026445858" cy="549.6340620615522" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2971.1646263303624" cy="516.280291549978" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2913.115815265993" cy="540.2159218919298" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2662.8166950476343" cy="611.7482652812674" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2562.1891854053056" cy="617.8454630773637" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2870.6436652344414" cy="570.6292005220363" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2644.151157504072" cy="594.7807458635523" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2974.4027294978087" cy="482.49728438842004" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2907.7249145683168" cy="523.0095679712232" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2850.89600226936" cy="586.0904644878042" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2592.276702975919" cy="633.2244870773255" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2492.605995973648" cy="640.6468241811574" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2492.0802860127205" cy="641.5771044508542" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2827.031058616862" cy="540.3280240631669" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2960.0835984760342" cy="569.3269867859062" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2975.9711813342415" cy="503.5393603284118" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2959.3203181859517" cy="533.1251934853342" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2592.3302966722867" cy="602.9450023998164" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2577.1399063633357" cy="609.481355421113" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2931.7554022935938" cy="502.50795621553874" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2901.579505748762" cy="567.5842115843659" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2881.020447404229" cy="538.910821453658" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2520.728357170992" cy="655.7574831461948" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2872.2806535854374" cy="583.3623514125468" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2856.070791754551" cy="561.7908107161996" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2875.7242572342193" cy="542.3032705895395" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2645.5886687317634" cy="583.4531254414279" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2677.502601515002" cy="645.4038831959182" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2680.2989562053217" cy="560.8360549405897" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2563.6818446258353" cy="631.8954215384439" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2542.027337118124" cy="600.1943503740777" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2884.4769989442266" cy="505.4187841248395" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2551.6718516069127" cy="597.1175152683182" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2809.263219538954" cy="611.9066998644618" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2654.6053861273813" cy="609.0394989521941" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2485.178440830677" cy="643.6326237777027" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2967.3286493278333" cy="536.4368073936944" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2948.546901748943" cy="546.5932643884119" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2696.6399561257726" cy="561.4065563129132" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2584.365338013387" cy="643.8234407214608" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2604.924744928189" cy="614.9174634163035" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2773.5643327556445" cy="554.4650625451529" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2608.7198568161857" cy="619.4694773225532" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2936.6485963830405" cy="523.7301230335133" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2656.3071480724425" cy="624.6104304054412" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2933.765574369188" cy="522.6682674349033" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2689.996648437369" cy="568.6201647683339" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2746.0397810677105" cy="588.1221001727653" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2741.8473191359317" cy="554.9388998470605" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<ellipse cx="2570.2863751851883" cy="616.7437379531077" rx="4.0" ry="4.0" fill="#1971c2" stroke="#1971c2" stroke-width="1"/>
+<rect x="2120" y="740" width="455" height="300" rx="10" fill="#a5d8ff" fill-opacity="0.45" stroke="#1971c2" stroke-width="2"/>
+<text x="2130" y="746" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="2130" dy="14">Histogram: selection highlighted [core]</tspan></text>
+<polyline points="2150,780 2150,1000 2540,1000" fill="none" fill-opacity="0.5" stroke="#495057" stroke-width="1" stroke-linejoin="round"/>
+<rect x="2152.0" y="986.6991766648231" width="35.0" height="13.300823335176927" rx="10" fill="#4a9eed" fill-opacity="0.7" stroke="#1971c2" stroke-width="1"/>
+<rect x="2191.0" y="975.6266084087035" width="35.0" height="24.37339159129645" rx="10" fill="#4a9eed" fill-opacity="0.7" stroke="#1971c2" stroke-width="1"/>
+<rect x="2230.0" y="938.9377600306602" width="35.0" height="61.062239969339785" rx="10" fill="#4a9eed" fill-opacity="0.7" stroke="#1971c2" stroke-width="1"/>
+<rect x="2269.0" y="868.3049603553308" width="35.0" height="131.69503964466924" rx="10" fill="#4a9eed" fill-opacity="0.7" stroke="#1971c2" stroke-width="1"/>
+<rect x="2308.0" y="801.5959407052102" width="35.0" height="198.4040592947898" rx="10" fill="#4a9eed" fill-opacity="0.7" stroke="#1971c2" stroke-width="1"/>
+<rect x="2347.0" y="801.5959407052102" width="35.0" height="198.4040592947898" rx="10" fill="#4a9eed" fill-opacity="0.7" stroke="#1971c2" stroke-width="1"/>
+<rect x="2386.0" y="868.3049603553308" width="35.0" height="131.69503964466924" rx="10" fill="#4a9eed" fill-opacity="0.7" stroke="#1971c2" stroke-width="1"/>
+<rect x="2425.0" y="938.9377600306602" width="35.0" height="61.062239969339785" rx="10" fill="#4a9eed" fill-opacity="0.7" stroke="#1971c2" stroke-width="1"/>
+<rect x="2464.0" y="975.6266084087035" width="35.0" height="24.37339159129645" rx="10" fill="#4a9eed" fill-opacity="0.7" stroke="#1971c2" stroke-width="1"/>
+<rect x="2503.0" y="986.6991766648231" width="35.0" height="13.300823335176927" rx="10" fill="#4a9eed" fill-opacity="0.7" stroke="#1971c2" stroke-width="1"/>
+<rect x="2267" y="810" width="117" height="190" rx="10" fill="#ffc9c9" fill-opacity="0.6" stroke="#e03131" stroke-width="2"/>
+<rect x="2595" y="740" width="445" height="300" rx="10" fill="#e9ecef" fill-opacity="0.45" stroke="#868e96" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="2605" y="746" font-size="14" fill="#1e1e1e" font-weight="400"><tspan x="2605" dy="14">Result sheet [app]</tspan></text>
+<text x="2610" y="775" font-size="16" fill="#1e1e1e" font-weight="400"><tspan x="2610" dy="16">Selected: 812 / 5 000 points</tspan><tspan x="2610" dy="20.0">mean(petal_wid) = 1,72</tspan><tspan x="2610" dy="20.0"></tspan><tspan x="2610" dy="20.0">Linked selection:</tspan><tspan x="2610" dy="20.0">brush in scatter -&gt;</tspan><tspan x="2610" dy="20.0">highlight in histogram</tspan><tspan x="2610" dy="20.0">[core interaction]</tspan></text>
+<rect x="0" y="1090" width="3060" height="150" rx="10" fill="#fff3bf" fill-opacity="1.0" stroke="#b08800" stroke-width="2"/>
+<text x="12" y="1100" font-size="16" fill="#5c4400" font-weight="400"><tspan x="12" dy="16">Building blocks a stats plugin needs from D3SCOPE core: linear/log/band scales, axes with fine tick control, legends</tspan><tspan x="12" dy="20.0">(incl. continuous colour legend), facet grid / small multiples with shared scales, primitives (points, line, area band</tspan><tspan x="12" dy="20.0">between y0 and y1, binned rects, reference lines, annotations), zoom/pan, linked selection across charts, brush (core</tspan><tspan x="12" dy="20.0">plugin), number formatting (significant digits, scientific notation, fr-FR), high-DPI PNG + SVG export, large-N rendering.</tspan></text>
+</svg>
