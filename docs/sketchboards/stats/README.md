@@ -46,8 +46,28 @@ min/max and by LTTB. Both keep the overall shape.
 | **WASM**   | not decided                         | Only after a benchmark showing ≥2× end-to-end (PLAN §7).                                           |
 
 Reduction targets roughly one point per horizontal pixel of the chart (about 800–1 000 on a
-typical panel), so a line never looks coarser than its screen size. The default renderer is
-chosen from the post-reduction count.
+typical panel), so a line never looks coarser than its screen size.
+
+### Renderer: an option, SVG by default
+
+The renderer is a **chart option**, not an automatic switch. SVG gives the best quality (crisp
+text, exact hit-testing, vector export), so it stays the default. Canvas is opt-in, for large
+series.
+
+```ts
+const chart = createChart(el, {
+  type: 'line',
+  renderer: 'svg', // default. Set 'canvas' for large series.
+  reduce: { algorithm: 'lttb', target: 1000 }, // optional, off by default
+  locale: 'fr-FR',
+});
+```
+
+- `renderer` is set per chart in the options object, and can also be set globally with
+  `configure({ renderer })`. The chart option wins.
+- When `renderer: 'canvas'` is set, the chart still exports SVG and PNG.
+- The budget table above is advice in the docs, not a runtime switch. Above the SVG budget,
+  the chart logs a warning suggesting `reduce` or `renderer: 'canvas'`.
 
 ### Who provides what
 
@@ -61,7 +81,7 @@ chosen from the post-reduction count.
 ### Questions for review
 
 1. **Point budget:** does the SVG ~2 000 and Canvas ~100 000 proposal match your expectations? Should the reduction target instead be fixed at ~1 000 points?
-2. **Renderer choice:** should the choice be automatic (based on the post-reduction count) or explicit (`renderer: 'svg' | 'canvas'`)?
+2. **Renderer:** confirm `renderer` as a chart option (default `'svg'`), overridable globally with `configure({ renderer })`.
 
 ---
 
