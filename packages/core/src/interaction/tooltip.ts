@@ -53,6 +53,37 @@ export function createTooltip(svg: SVGSVGElement, options: TooltipOptions = {}):
     : createSvgTooltip(svg);
 }
 
+/** One tooltip per chart SVG, reused across redraws (keyed by mode). */
+const cache = new WeakMap<SVGSVGElement, { key: string; tooltip: Tooltip }>();
+
+/**
+ * Get the chart's tooltip for a redraw. `undefined` (off) destroys any tooltip
+ * left from an earlier draw. Charts call this on every render.
+ */
+export function acquireTooltip(
+  svg: SVGSVGElement,
+  options: boolean | TooltipOptions | undefined,
+): Tooltip | undefined {
+  if (options === undefined || options === false) {
+    releaseTooltip(svg);
+    return undefined;
+  }
+  const opts = options === true ? {} : options;
+  const key = opts.mode ?? 'svg';
+  const cached = cache.get(svg);
+  if (cached?.key === key) return cached.tooltip;
+  cached?.tooltip.destroy();
+  const tooltip = createTooltip(svg, opts);
+  cache.set(svg, { key, tooltip });
+  return tooltip;
+}
+
+/** Destroy the chart's tooltip, if any. */
+export function releaseTooltip(svg: SVGSVGElement): void {
+  cache.get(svg)?.tooltip.destroy();
+  cache.delete(svg);
+}
+
 /** Box size for `content`, in px, so the SVG tooltip can draw its background. */
 export function tooltipBoxSize(content: TooltipContent): { width: number; height: number } {
   const all = content.title === undefined ? content.lines : [content.title, ...content.lines];

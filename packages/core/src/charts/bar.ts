@@ -10,8 +10,7 @@ import { bandScale, linearScale } from '../scales/index.js';
 import { pointer, select, type Selection } from 'd3-selection';
 import type { ScaleBand, ScaleLinear } from 'd3-scale';
 import {
-  createTooltip,
-  type Tooltip,
+  acquireTooltip,
   type TooltipContent,
   type TooltipOptions,
 } from '../interaction/tooltip.js';
@@ -174,19 +173,13 @@ export function renderBarChart(
   return layout;
 }
 
-/** One tooltip per chart SVG, reused across redraws. */
-const tooltips = new WeakMap<SVGSVGElement, { key: string; tooltip: Tooltip }>();
-
 function bindBarInteractions(
   svg: SVGSVGElement,
   bars: Selection<SVGRectElement, BarGeometry, SVGGElement, null>,
   options: BarChartOptions,
 ): void {
+  const tip = acquireTooltip(svg, options.tooltip);
   const tooltipOpts = options.tooltip;
-  const enabled = tooltipOpts !== undefined && tooltipOpts !== false;
-  const tip = enabled ? tooltipFor(svg, tooltipOpts === true ? {} : tooltipOpts) : undefined;
-  if (!enabled) releaseTooltip(svg);
-
   const format =
     typeof tooltipOpts === 'object' && tooltipOpts.format
       ? tooltipOpts.format
@@ -210,21 +203,6 @@ function bindBarInteractions(
     .on('click', (event: MouseEvent, d: BarGeometry) => {
       options.onBarClick?.(datumOf(d), event);
     });
-}
-
-function tooltipFor(svg: SVGSVGElement, opts: TooltipOptions): Tooltip {
-  const key = opts.mode ?? 'svg';
-  const cached = tooltips.get(svg);
-  if (cached?.key === key) return cached.tooltip;
-  cached?.tooltip.destroy();
-  const tooltip = createTooltip(svg, opts);
-  tooltips.set(svg, { key, tooltip });
-  return tooltip;
-}
-
-function releaseTooltip(svg: SVGSVGElement): void {
-  tooltips.get(svg)?.tooltip.destroy();
-  tooltips.delete(svg);
 }
 
 function defaultTooltipContent(datum: BarDatum): TooltipContent {
