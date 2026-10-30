@@ -156,7 +156,7 @@ describe('renderLineChart', () => {
     expect(cross?.style.display).toBe('');
     expect(cross?.getAttribute('transform')).toBe('translate(290,0)');
     const text = svg.querySelector('g.d3scope-tooltip text')?.textContent;
-    expect(text).toContain('2026-01-03');
+    expect(text).toContain('03/01/2026');
     expect(text).toContain('30');
   });
 
