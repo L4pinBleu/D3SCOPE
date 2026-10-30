@@ -167,10 +167,19 @@ export function renderBarChart(
     .node();
 
   if (xAxis) {
-    renderAxis(xAxis, layout.xScale, { orientation: 'bottom', tickSize: 0, tickPadding: 6 });
+    renderAxis(xAxis, layout.xScale, {
+      orientation: 'bottom',
+      tickSize: 0,
+      tickPadding: 6,
+      locale: options.locale,
+    });
   }
   if (yAxis) {
-    renderAxis(yAxis, layout.yScale, { orientation: 'left', tickCount: options.tickCount ?? 5 });
+    renderAxis(yAxis, layout.yScale, {
+      orientation: 'left',
+      tickCount: options.tickCount ?? 5,
+      locale: options.locale,
+    });
   }
 
   bindBarInteractions(svg, plot.selectAll<SVGRectElement, BarGeometry>('rect.bar'), options);
