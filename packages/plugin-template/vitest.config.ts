@@ -1,6 +1,15 @@
 import { defineConfig } from 'vitest/config';
+import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@d3scope/core/plugin': fileURLToPath(
+        new URL('../core/src/plugin/index.ts', import.meta.url),
+      ),
+      '@d3scope/core': fileURLToPath(new URL('../core/src/index.ts', import.meta.url)),
+    },
+  },
   test: {
     include: ['tests/**/*.test.ts'],
     environment: 'jsdom',
