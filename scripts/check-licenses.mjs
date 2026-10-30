@@ -31,7 +31,13 @@ const PROD_ALLOWED = new Set([
   'AGPL-3.0-or-later',
 ]);
 
-const DEV_ALLOWED = new Set([...PROD_ALLOWED, 'BlueOak-1.0.0', 'CC-BY-4.0', 'Python-2.0']);
+const DEV_ALLOWED = new Set([
+  ...PROD_ALLOWED,
+  'BlueOak-1.0.0',
+  'CC-BY-4.0',
+  'MIT-0', // permissive, no attribution; jsdom's CSS helpers (dev/test only)
+  'Python-2.0',
+]);
 
 const root = process.cwd();
 
