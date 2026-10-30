@@ -15,6 +15,7 @@ import {
   type AxisScale,
 } from 'd3-axis';
 import { select } from 'd3-selection';
+import { cssVar, LIGHT_THEME } from '../theme/index.js';
 
 export type AxisOrientation = 'top' | 'right' | 'bottom' | 'left';
 
@@ -69,5 +70,9 @@ export function renderAxis<D extends AxisDomain>(
   scale: AxisScale<D>,
   options: AxisOptions<D>,
 ): void {
-  select(group).call(createAxis(scale, options));
+  // d3-axis draws with `currentColor`, so the themed colour goes on the group.
+  select(group)
+    .style('color', cssVar('textMuted', LIGHT_THEME.textMuted))
+    .style('font-family', cssVar('fontFamily', LIGHT_THEME.fontFamily))
+    .call(createAxis(scale, options));
 }

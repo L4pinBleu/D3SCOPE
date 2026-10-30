@@ -6,6 +6,7 @@
  * SVG element. Negative values grow below the zero line.
  */
 import { renderAxis } from '../axes/index.js';
+import { LIGHT_THEME } from '../theme/index.js';
 import { formatNumber, type LocaleName } from '../format/index.js';
 import { bandScale, linearScale } from '../scales/index.js';
 import { pointer, select, type Selection } from 'd3-selection';
@@ -82,7 +83,7 @@ export interface BarLayout {
 }
 
 const DEFAULT_MARGIN: Margin = { top: 16, right: 16, bottom: 28, left: 40 };
-const DEFAULT_COLOR = '#4a9eed';
+const DEFAULT_COLOR = LIGHT_THEME.accent;
 
 /** Compute bar geometry for `data`. Pure: no DOM access. */
 export function layoutBarChart(data: readonly BarDatum[], options: BarChartOptions): BarLayout {
