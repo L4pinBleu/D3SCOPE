@@ -44,7 +44,7 @@ const root = process.cwd();
 /** Workspace directories: the root plus every packages/* and apps/* folder. */
 function workspaceDirs() {
   const dirs = [root];
-  for (const group of ['packages', 'apps']) {
+  for (const group of ['packages', 'apps', 'plugins']) {
     const base = join(root, group);
     if (!existsSync(base)) continue;
     for (const entry of readdirSync(base, { withFileTypes: true })) {
