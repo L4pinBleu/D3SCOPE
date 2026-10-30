@@ -7,8 +7,14 @@
  */
 import { renderAxis } from '../axes/index.js';
 import { bandScale, linearScale } from '../scales/index.js';
-import { select } from 'd3-selection';
+import { pointer, select, type Selection } from 'd3-selection';
 import type { ScaleBand, ScaleLinear } from 'd3-scale';
+import {
+  createTooltip,
+  type Tooltip,
+  type TooltipContent,
+  type TooltipOptions,
+} from '../interaction/tooltip.js';
 
 export interface BarDatum {
   /** Category name. Must be unique within a chart. */
@@ -36,6 +42,18 @@ export interface BarChartOptions {
   color?: string;
   /** Approximate number of value ticks. Default: 5. */
   tickCount?: number;
+  /**
+   * Show a tooltip on hover. Off by default. `true` uses an SVG tooltip with the
+   * label and value; an object customizes mode, container and content.
+   */
+  tooltip?: boolean | BarTooltipOptions;
+  /** Called when a bar is clicked. */
+  onBarClick?: (datum: BarDatum, event: MouseEvent) => void;
+}
+
+export interface BarTooltipOptions extends TooltipOptions {
+  /** Content for a hovered bar. Default: the label as title and the value as a line. */
+  format?: (datum: BarDatum) => TooltipContent;
 }
 
 export interface BarGeometry {
@@ -151,5 +169,64 @@ export function renderBarChart(
   if (yAxis) {
     renderAxis(yAxis, layout.yScale, { orientation: 'left', tickCount: options.tickCount ?? 5 });
   }
+
+  bindBarInteractions(svg, plot.selectAll<SVGRectElement, BarGeometry>('rect.bar'), options);
   return layout;
+}
+
+/** One tooltip per chart SVG, reused across redraws. */
+const tooltips = new WeakMap<SVGSVGElement, { key: string; tooltip: Tooltip }>();
+
+function bindBarInteractions(
+  svg: SVGSVGElement,
+  bars: Selection<SVGRectElement, BarGeometry, SVGGElement, null>,
+  options: BarChartOptions,
+): void {
+  const tooltipOpts = options.tooltip;
+  const enabled = tooltipOpts !== undefined && tooltipOpts !== false;
+  const tip = enabled ? tooltipFor(svg, tooltipOpts === true ? {} : tooltipOpts) : undefined;
+  if (!enabled) releaseTooltip(svg);
+
+  const format =
+    typeof tooltipOpts === 'object' && tooltipOpts.format
+      ? tooltipOpts.format
+      : defaultTooltipContent;
+  const datumOf = (d: BarGeometry): BarDatum => ({
+    label: d.label,
+    value: d.value,
+    color: d.color,
+  });
+  const showAt = (event: MouseEvent, d: BarGeometry): void => {
+    const [x, y] = pointer(event, svg);
+    tip?.show(format(datumOf(d)), { x, y });
+  };
+
+  bars
+    .on('mouseenter', showAt)
+    .on('mousemove', showAt)
+    .on('mouseleave', () => {
+      tip?.hide();
+    })
+    .on('click', (event: MouseEvent, d: BarGeometry) => {
+      options.onBarClick?.(datumOf(d), event);
+    });
+}
+
+function tooltipFor(svg: SVGSVGElement, opts: TooltipOptions): Tooltip {
+  const key = opts.mode ?? 'svg';
+  const cached = tooltips.get(svg);
+  if (cached?.key === key) return cached.tooltip;
+  cached?.tooltip.destroy();
+  const tooltip = createTooltip(svg, opts);
+  tooltips.set(svg, { key, tooltip });
+  return tooltip;
+}
+
+function releaseTooltip(svg: SVGSVGElement): void {
+  tooltips.get(svg)?.tooltip.destroy();
+  tooltips.delete(svg);
+}
+
+function defaultTooltipContent(datum: BarDatum): TooltipContent {
+  return { title: datum.label, lines: [String(datum.value)] };
 }
