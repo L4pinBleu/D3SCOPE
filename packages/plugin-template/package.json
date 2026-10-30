@@ -1,0 +1,33 @@
+{
+  "name": "@d3scope/plugin-template",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Template for a D3SCOPE plugin: one chart, one theme, one palette, built only on @d3scope/core/plugin",
+  "license": "MIT",
+  "author": "L4pinBleu",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@d3scope/core": "workspace:*",
+    "@types/node": "^24.19.2",
+    "@vitest/coverage-v8": "^5.0.5",
+    "jsdom": "^26.1.0",
+    "tsup": "^9.0.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.5"
+  }
+}
