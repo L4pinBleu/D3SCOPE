@@ -7,6 +7,7 @@
  *
  * Angles start at 12 o'clock and run clockwise, as in d3-shape's `pie`.
  */
+import { formatNumber, formatPercent, type LocaleName } from '../format/index.js';
 import { pointer, select, type Selection } from 'd3-selection';
 import {
   acquireTooltip,
@@ -50,6 +51,8 @@ export interface PieChartOptions {
   tooltip?: boolean | PieTooltipOptions;
   /** Called when a slice is clicked. */
   onSliceClick?: (slice: PieSlice, event: MouseEvent) => void;
+  /** Locale for default tooltip text. Default: the library locale (`fr-FR`). */
+  locale?: LocaleName;
 }
 
 export interface PieLayout {
@@ -198,7 +201,7 @@ function bindPieInteractions(
   const format =
     typeof tooltipOpts === 'object' && tooltipOpts.format
       ? tooltipOpts.format
-      : defaultTooltipContent;
+      : (s: PieSlice) => defaultTooltipContent(s, options.locale);
 
   const showAt = (event: MouseEvent, d: PieSlice): void => {
     const [x, y] = pointer(event, svg);
@@ -216,9 +219,11 @@ function bindPieInteractions(
     });
 }
 
-function defaultTooltipContent(slice: PieSlice): TooltipContent {
+function defaultTooltipContent(slice: PieSlice, locale?: LocaleName): TooltipContent {
   return {
     title: slice.label,
-    lines: [`${String(slice.value)} (${(slice.share * 100).toFixed(1)} %)`],
+    lines: [
+      `${formatNumber(slice.value, { locale })} (${formatPercent(slice.share, { decimals: 1, locale })})`,
+    ],
   };
 }

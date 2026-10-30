@@ -130,7 +130,7 @@ describe('renderPieChart', () => {
     const texts = Array.from(svg.querySelectorAll('g.d3scope-tooltip tspan')).map(
       (t) => t.textContent,
     );
-    expect(texts).toEqual(['C', '2 (50.0 %)']);
+    expect(texts).toEqual(['C', '2 (50,0\u202f%)']);
   });
 
   it('uses a custom format callback', () => {

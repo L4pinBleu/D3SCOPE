@@ -8,6 +8,7 @@
 /** Library version, kept in sync with package.json by the release process. */
 export const VERSION = '0.0.0';
 
+export * from './format/index.js';
 export * from './scales/index.js';
 export * from './axes/index.js';
 export * from './legends/index.js';

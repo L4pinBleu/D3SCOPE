@@ -9,6 +9,7 @@
  * Paths are built as plain SVG strings, so no d3-shape dependency is needed.
  */
 import { renderAxis } from '../axes/index.js';
+import { formatDate, formatNumber, type LocaleName } from '../format/index.js';
 import { linearScale, timeScale } from '../scales/index.js';
 import {
   acquireTooltip,
@@ -30,7 +31,7 @@ export interface LinePointGeometry extends TimePoint {
 }
 
 export interface LineTooltipOptions extends TooltipOptions {
-  /** Content for the nearest point. Default: the date (ISO day) as title, the value as a line. */
+  /** Content for the nearest point. Default: the date as title, the value as a line, in the chart locale. */
   format?: (point: TimePoint) => TooltipContent;
 }
 
@@ -52,6 +53,8 @@ export interface LineChartOptions {
   tooltip?: boolean | LineTooltipOptions;
   /** Called when the chart is clicked, with the nearest point. */
   onPointClick?: (point: TimePoint, event: MouseEvent) => void;
+  /** Locale for default tooltip text. Default: the library locale (`fr-FR`). */
+  locale?: LocaleName;
 }
 
 export interface LineLayout {
@@ -220,7 +223,7 @@ function bindLineInteractions(
   const format =
     typeof tooltipOpts === 'object' && tooltipOpts.format
       ? tooltipOpts.format
-      : defaultTooltipContent;
+      : (p: TimePoint) => defaultTooltipContent(p, options.locale);
 
   // Crosshair: a vertical rule and a dot on the nearest point. Hidden until hover.
   const crosshair = plot
@@ -283,6 +286,9 @@ function bindLineInteractions(
     });
 }
 
-function defaultTooltipContent(point: TimePoint): TooltipContent {
-  return { title: point.date.toISOString().slice(0, 10), lines: [String(point.value)] };
+function defaultTooltipContent(point: TimePoint, locale?: LocaleName): TooltipContent {
+  return {
+    title: formatDate(point.date, { locale }),
+    lines: [formatNumber(point.value, { locale })],
+  };
 }

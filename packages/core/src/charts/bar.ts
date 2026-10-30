@@ -6,6 +6,7 @@
  * SVG element. Negative values grow below the zero line.
  */
 import { renderAxis } from '../axes/index.js';
+import { formatNumber, type LocaleName } from '../format/index.js';
 import { bandScale, linearScale } from '../scales/index.js';
 import { pointer, select, type Selection } from 'd3-selection';
 import type { ScaleBand, ScaleLinear } from 'd3-scale';
@@ -48,6 +49,8 @@ export interface BarChartOptions {
   tooltip?: boolean | BarTooltipOptions;
   /** Called when a bar is clicked. */
   onBarClick?: (datum: BarDatum, event: MouseEvent) => void;
+  /** Locale for default tooltip text. Default: the library locale (`fr-FR`). */
+  locale?: LocaleName;
 }
 
 export interface BarTooltipOptions extends TooltipOptions {
@@ -183,7 +186,7 @@ function bindBarInteractions(
   const format =
     typeof tooltipOpts === 'object' && tooltipOpts.format
       ? tooltipOpts.format
-      : defaultTooltipContent;
+      : (d: BarDatum) => defaultTooltipContent(d, options.locale);
   const datumOf = (d: BarGeometry): BarDatum => ({
     label: d.label,
     value: d.value,
@@ -205,6 +208,6 @@ function bindBarInteractions(
     });
 }
 
-function defaultTooltipContent(datum: BarDatum): TooltipContent {
-  return { title: datum.label, lines: [String(datum.value)] };
+function defaultTooltipContent(datum: BarDatum, locale?: LocaleName): TooltipContent {
+  return { title: datum.label, lines: [formatNumber(datum.value, { locale })] };
 }
