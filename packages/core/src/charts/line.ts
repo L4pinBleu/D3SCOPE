@@ -204,9 +204,18 @@ export function renderLineChart(
     .attr('class', 'y-axis')
     .node();
   if (xAxis)
-    renderAxis(xAxis, layout.xScale, { orientation: 'bottom', tickSize: 0, tickPadding: 6 });
+    renderAxis(xAxis, layout.xScale, {
+      orientation: 'bottom',
+      tickSize: 0,
+      tickPadding: 6,
+      locale: options.locale,
+    });
   if (yAxis) {
-    renderAxis(yAxis, layout.yScale, { orientation: 'left', tickCount: options.tickCount ?? 5 });
+    renderAxis(yAxis, layout.yScale, {
+      orientation: 'left',
+      tickCount: options.tickCount ?? 5,
+      locale: options.locale,
+    });
   }
 
   bindLineInteractions(svg, plot, layout, options);
