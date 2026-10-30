@@ -121,3 +121,5 @@ export function renderCategoricalLegend(
 
   return layout;
 }
+
+export * from './continuous.js';
