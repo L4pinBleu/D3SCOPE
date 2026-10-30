@@ -206,3 +206,4 @@ export function defineChart<TData, TOptions>(
 }
 
 export type { ThemeTokens } from '../theme/index.js';
+export { loadPlugins, type LoadPluginsOptions, type PluginLoadResult } from './loader.js';
