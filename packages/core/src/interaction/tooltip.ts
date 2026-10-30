@@ -10,6 +10,7 @@
  * Points are in the chart SVG's user space (the same coordinates as `d3.pointer`).
  */
 import { select } from 'd3-selection';
+import { cssVar } from '../theme/index.js';
 
 export interface TooltipContent {
   /** Bold first line. Optional. */
@@ -116,8 +117,16 @@ function createSvgTooltip(svg: SVGSVGElement): Tooltip {
     .attr('class', 'd3scope-tooltip')
     .attr('pointer-events', 'none')
     .style('display', 'none');
-  const bg = root.append('rect').attr('rx', 4).attr('fill', '#ffffff').attr('stroke', '#d0d7de');
-  const text = root.append('text').attr('font-size', 12).attr('fill', '#1f2328');
+  const bg = root
+    .append('rect')
+    .attr('rx', 4)
+    .style('fill', cssVar('surface', '#ffffff'))
+    .style('stroke', cssVar('border', '#d0d7de'));
+  const text = root
+    .append('text')
+    .attr('font-size', 12)
+    .style('fill', cssVar('text', '#1f2328'))
+    .style('font-family', cssVar('fontFamily', 'system-ui, sans-serif'));
 
   return {
     show(content, point) {
@@ -161,10 +170,10 @@ function createHtmlTooltip(svg: SVGSVGElement, container?: HTMLElement): Tooltip
     display: 'none',
     padding: `${String(PADDING)}px`,
     borderRadius: '4px',
-    border: '1px solid var(--border, #d0d7de)',
-    background: 'var(--card, #ffffff)',
-    color: 'var(--foreground, #1f2328)',
-    font: '12px/1.33 var(--font-sans, system-ui, sans-serif)',
+    border: `1px solid ${cssVar('border', '#d0d7de')}`,
+    background: cssVar('surface', '#ffffff'),
+    color: cssVar('text', '#1f2328'),
+    font: `12px/1.33 ${cssVar('fontFamily', 'system-ui, sans-serif')}`,
     whiteSpace: 'nowrap',
   });
   host.appendChild(el);
