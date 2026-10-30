@@ -61,6 +61,18 @@ export function getTheme(name: ThemeName = 'default'): ThemeTokens {
   return theme;
 }
 
+/** Whether a theme is registered under `name`. */
+export function hasTheme(name: ThemeName): boolean {
+  return themes.has(name);
+}
+
+/** Remove a registered theme. The built-in `default` theme cannot be removed. */
+export function unregisterTheme(name: ThemeName): void {
+  if (name === 'default')
+    throw new RangeError('unregisterTheme: the default theme cannot be removed');
+  themes.delete(name);
+}
+
 /** CSS custom property name for a role, for example `--d3s-text`. */
 export function tokenVar(role: keyof Omit<ThemeTokens, 'palette'>): string {
   return `--d3s-${role.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
