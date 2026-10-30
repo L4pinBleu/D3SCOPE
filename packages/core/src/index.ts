@@ -14,5 +14,6 @@ export * from './legends/index.js';
 export * from './charts/bar.js';
 export * from './charts/line.js';
 export * from './charts/pie.js';
+export * from './charts/sparkline.js';
 export * from './interaction/tooltip.js';
 export * from './export/png.js';
