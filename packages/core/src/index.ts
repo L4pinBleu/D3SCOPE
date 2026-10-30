@@ -9,3 +9,4 @@
 export const VERSION = '0.0.0';
 
 export * from './scales/index.js';
+export * from './axes/index.js';

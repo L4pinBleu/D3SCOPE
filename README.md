@@ -83,7 +83,7 @@ Apache-2.0, MPL-2.0, LGPL-3.0 and GPL-3.0. Plugins are exempt.
 
 Dev-only tools (linters, test runners) never ship in the build and don't
 affect the project license. They may also use a few other permissive licenses,
-such as BlueOak-1.0.0. The exact allowlists are in
+such as BlueOak-1.0.0 and MIT-0 (no attribution). The exact allowlists are in
 [`scripts/check-licenses.mjs`](./scripts/check-licenses.mjs).
 
 Dependency checks:
