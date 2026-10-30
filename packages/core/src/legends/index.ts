@@ -9,6 +9,7 @@
  * Real text measurement would need the DOM and is not needed for this layout.
  */
 import { select } from 'd3-selection';
+import { cssVar, LIGHT_THEME } from '../theme/index.js';
 
 export interface LegendItem {
   label: string;
@@ -115,6 +116,7 @@ export function renderCategoricalLegend(
     .attr('y', swatch / 2)
     .attr('dominant-baseline', 'central')
     .attr('font-size', fontSize)
+    .style('fill', cssVar('text', LIGHT_THEME.text))
     .text((d) => d.item.label);
 
   return layout;

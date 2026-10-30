@@ -18,6 +18,7 @@ import {
 } from '../interaction/tooltip.js';
 import { pointer, select, type Selection } from 'd3-selection';
 import type { ScaleLinear, ScaleTime } from 'd3-scale';
+import { cssVar, LIGHT_THEME } from '../theme/index.js';
 import type { Margin } from './bar.js';
 
 export interface TimePoint {
@@ -72,7 +73,7 @@ export interface LineLayout {
 }
 
 const DEFAULT_MARGIN: Margin = { top: 16, right: 16, bottom: 28, left: 40 };
-const DEFAULT_COLOR = '#4a9eed';
+const DEFAULT_COLOR = LIGHT_THEME.accent;
 
 /** Round to 2 decimals so paths stay short. */
 function fmt(n: number): string {
@@ -239,15 +240,15 @@ function bindLineInteractions(
     .join('line')
     .attr('y1', 0)
     .attr('y2', layout.innerHeight)
-    .attr('stroke', '#8c959f')
+    .style('stroke', cssVar('textMuted', LIGHT_THEME.textMuted))
     .attr('stroke-dasharray', '4 3');
   crosshair
     .selectAll<SVGCircleElement, null>('circle')
     .data([null])
     .join('circle')
     .attr('r', 4)
-    .attr('fill', '#ffffff')
-    .attr('stroke', '#1f2328')
+    .style('fill', cssVar('surface', LIGHT_THEME.surface))
+    .style('stroke', cssVar('text', LIGHT_THEME.text))
     .attr('stroke-width', 2);
 
   // Transparent overlay: catches the pointer over the whole plot area.

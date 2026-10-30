@@ -9,6 +9,7 @@
  */
 import { formatNumber, formatPercent, type LocaleName } from '../format/index.js';
 import { pointer, select, type Selection } from 'd3-selection';
+import { LIGHT_THEME } from '../theme/index.js';
 import {
   acquireTooltip,
   type TooltipContent,
@@ -65,16 +66,7 @@ export interface PieLayout {
 }
 
 /** Default slice palette, in order. */
-export const PIE_PALETTE: readonly string[] = [
-  '#4a9eed',
-  '#f5a623',
-  '#7ed321',
-  '#d0021b',
-  '#9013fe',
-  '#50e3c2',
-  '#b8e986',
-  '#8b572a',
-];
+export const PIE_PALETTE: readonly string[] = LIGHT_THEME.palette;
 
 const TAU = Math.PI * 2;
 
@@ -95,7 +87,7 @@ export function layoutPie(data: readonly PieDatum[]): PieSlice[] {
       label: d.label,
       value: d.value,
       share,
-      color: d.color ?? PIE_PALETTE[i % PIE_PALETTE.length] ?? '#4a9eed',
+      color: d.color ?? PIE_PALETTE[i % PIE_PALETTE.length] ?? LIGHT_THEME.accent,
       startAngle: start,
       endAngle: angle,
     };
