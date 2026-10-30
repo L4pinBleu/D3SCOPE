@@ -18,4 +18,5 @@ export * from './charts/pie.js';
 export * from './charts/sparkline.js';
 export * from './interaction/tooltip.js';
 export * from './export/png.js';
+export * from './export/svg.js';
 export * from './theme/index.js';
