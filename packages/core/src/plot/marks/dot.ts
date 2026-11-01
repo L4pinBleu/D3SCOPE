@@ -21,8 +21,16 @@ export interface DotOptions<T> {
   x: Accessor<T, Primitive>;
   /** Y accessor: a field name or a function. Must be numeric. */
   y: Accessor<T, number | null | undefined>;
-  /** Radius in pixels. Default: 3. */
+  /** Radius in pixels. Default: 3. Ignored when `size` is given. */
   r?: number;
+  /**
+   * Size accessor for bubbles: a field name or a function, numeric. Rows with
+   * a missing size are skipped and do not take part in the min/max. Size
+   * values never reach an axis domain.
+   */
+  size?: Accessor<T, number | null | undefined>;
+  /** Pixel radii for the smallest and largest size. Default: `[3, 20]`. */
+  sizeRange?: [number, number];
   /**
    * Fill: a string that is a key of the rows is a category read through the
    * colour scale; any other string is a literal CSS colour; a function returns
@@ -49,6 +57,36 @@ export function dot<T>(rows: readonly T[], options: DotOptions<T>): Mark {
     valid.push({ row, x, y });
   }
 
+  // Bubble sizes: when `size` is given, only rows with a finite size count
+  // for the min/max, and rows with a missing size are dropped entirely.
+  let radius: (point: { row: T }) => number | null;
+  if (options.size !== undefined) {
+    const getSize = accessor(options.size);
+    const present: number[] = [];
+    for (const point of valid) {
+      const s = toNumber(getSize(point.row));
+      if (s !== null) present.push(s);
+    }
+    if (present.length === 0) {
+      radius = () => null;
+    } else {
+      const vmin = Math.min(...present);
+      const vmax = Math.max(...present);
+      const [rmin, rmax] = options.sizeRange ?? [3, 20];
+      // Bubbles encode size by AREA, so the radius grows with sqrt(t).
+      radius = (point) => {
+        const s = toNumber(getSize(point.row));
+        if (s === null) return null;
+        if (vmin === vmax) return (rmin + rmax) / 2;
+        const t = (s - vmin) / (vmax - vmin);
+        return rmin + (rmax - rmin) * Math.sqrt(t);
+      };
+    }
+  } else {
+    const fixed = options.r ?? 3;
+    radius = () => fixed;
+  }
+
   return {
     name: 'dot',
     xValues: () => valid.map((p) => p.x),
@@ -64,14 +102,16 @@ export function dot<T>(rows: readonly T[], options: DotOptions<T>): Mark {
     },
     render(ctx: PlotContext): void {
       const layer = ctx.layer('dot');
-      const radius = options.r ?? 3;
       const opacity = options.opacity ?? 1;
       for (const point of valid) {
+        const r = radius(point);
+        // A row with a missing size is skipped entirely.
+        if (r === null) continue;
         const circle = document.createElementNS(SVG_NS, 'circle');
         circle.setAttribute('class', 'd3s-dot');
         circle.setAttribute('cx', String(xPosition(ctx, point.x)));
         circle.setAttribute('cy', String(ctx.y.position(point.y)));
-        circle.setAttribute('r', String(radius));
+        circle.setAttribute('r', String(r));
         circle.setAttribute('fill', fillFor(point.row, fill, ctx));
         if (opacity !== 1) circle.setAttribute('fill-opacity', String(opacity));
         layer.appendChild(circle);
