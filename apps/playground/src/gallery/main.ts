@@ -6,13 +6,19 @@
  */
 import { plot, type PlotSpec } from '@d3scope/core';
 import {
+  areaSpec,
+  axesSpec,
   barXSpec,
   barYSpec,
+  bubbleSpec,
+  cellSpec,
   dotSpec,
-  axesSpec,
+  groupedBarSpec,
+  histogramSpec,
   legendSpec,
   lineSpec,
   ruleSpec,
+  stackedBarSpec,
   type AxisControls,
 } from './config.js';
 
@@ -233,6 +239,130 @@ export const PAGES: readonly Page[] = [
         legend: v.legend === true,
         domain: String(v.domain ?? ''),
         range: String(v.range ?? ''),
+      }),
+  },
+  {
+    id: 'bar-stack',
+    label: 'Barres empilées',
+    withAxes: true,
+    controls: [
+      { key: 'stack', label: 'Empiler', kind: 'checkbox', value: 'true' },
+      { key: 'normalize', label: 'Normaliser (100 %)', kind: 'checkbox', value: 'false' },
+      { key: 'legend', label: 'Légende', kind: 'checkbox', value: 'true' },
+      { key: 'range', label: 'Couleurs des séries', kind: 'text', value: '' },
+      { key: 'opacity', label: 'Opacity', kind: 'number', value: '0.9' },
+    ],
+    build: (v) =>
+      stackedBarSpec({
+        stack: v.stack === true,
+        normalize: v.normalize === true,
+        legend: v.legend === true,
+        range: String(v.range ?? ''),
+        opacity: String(v.opacity ?? ''),
+        x: readAxis(v, 'x'),
+        y: readAxis(v, 'y'),
+      }),
+  },
+  {
+    id: 'bar-group',
+    label: 'Barres groupées',
+    withAxes: true,
+    controls: [
+      { key: 'group', label: 'Grouper', kind: 'checkbox', value: 'true' },
+      { key: 'horizontal', label: 'Horizontal (rectX)', kind: 'checkbox', value: 'false' },
+      { key: 'legend', label: 'Légende', kind: 'checkbox', value: 'true' },
+      { key: 'opacity', label: 'Opacity', kind: 'number', value: '0.9' },
+    ],
+    build: (v) =>
+      groupedBarSpec({
+        group: v.group === true,
+        horizontal: v.horizontal === true,
+        legend: v.legend === true,
+        opacity: String(v.opacity ?? ''),
+        x: readAxis(v, 'x'),
+        y: readAxis(v, 'y'),
+      }),
+  },
+  {
+    id: 'area',
+    label: 'Aires',
+    withAxes: true,
+    controls: [
+      {
+        key: 'mode',
+        label: 'Mode',
+        kind: 'select',
+        options: ['aires', 'empilée'],
+        value: 'aires',
+      },
+      {
+        key: 'series',
+        label: 'Series',
+        kind: 'select',
+        options: ['series', 'none'],
+        value: 'series',
+      },
+      { key: 'normalize', label: 'Normaliser (100 %)', kind: 'checkbox', value: 'false' },
+      { key: 'opacity', label: 'Opacity', kind: 'number', value: '0.6' },
+    ],
+    build: (v) =>
+      areaSpec({
+        mode: String(v.mode ?? 'aires'),
+        series: String(v.series ?? 'series'),
+        normalize: v.normalize === true,
+        opacity: String(v.opacity ?? ''),
+        x: readAxis(v, 'x'),
+        y: readAxis(v, 'y'),
+      }),
+  },
+  {
+    id: 'histogram',
+    label: 'Histogramme',
+    withAxes: true,
+    controls: [
+      { key: 'count', label: 'Count (approx. bins)', kind: 'number', value: '' },
+      { key: 'fill', label: 'Fill (couleur fixe)', kind: 'text', value: '' },
+      { key: 'opacity', label: 'Opacity', kind: 'number', value: '0.9' },
+    ],
+    build: (v) =>
+      histogramSpec({
+        count: String(v.count ?? ''),
+        fill: String(v.fill ?? ''),
+        opacity: String(v.opacity ?? ''),
+        x: readAxis(v, 'x'),
+        y: readAxis(v, 'y'),
+      }),
+  },
+  {
+    id: 'bubble',
+    label: 'Bulles',
+    withAxes: true,
+    controls: [
+      { key: 'sizeMin', label: 'sizeRange.min', kind: 'number', value: '4' },
+      { key: 'sizeMax', label: 'sizeRange.max', kind: 'number', value: '24' },
+      { key: 'fillByCategory', label: 'Remplir par région', kind: 'checkbox', value: 'true' },
+      { key: 'opacity', label: 'Opacity', kind: 'number', value: '0.7' },
+    ],
+    build: (v) =>
+      bubbleSpec({
+        sizeMin: String(v.sizeMin ?? ''),
+        sizeMax: String(v.sizeMax ?? ''),
+        fillByCategory: v.fillByCategory === true,
+        opacity: String(v.opacity ?? ''),
+        x: readAxis(v, 'x'),
+        y: readAxis(v, 'y'),
+      }),
+  },
+  {
+    id: 'heatmap',
+    label: 'Carte de chaleur',
+    withAxes: true,
+    controls: [{ key: 'opacity', label: 'Opacity', kind: 'number', value: '0.9' }],
+    build: (v) =>
+      cellSpec({
+        opacity: String(v.opacity ?? ''),
+        x: readAxis(v, 'x'),
+        y: readAxis(v, 'y'),
       }),
   },
 ];
