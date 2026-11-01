@@ -55,7 +55,7 @@ export interface LineChartOptions {
   /** Called when the chart is clicked, with the nearest point. */
   onPointClick?: (point: TimePoint, event: MouseEvent) => void;
   /** Locale for default tooltip text. Default: the library locale (`fr-FR`). */
-  locale?: LocaleName;
+  locale?: LocaleName | undefined;
 }
 
 export interface LineLayout {

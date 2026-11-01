@@ -51,7 +51,7 @@ export interface BarChartOptions {
   /** Called when a bar is clicked. */
   onBarClick?: (datum: BarDatum, event: MouseEvent) => void;
   /** Locale for default tooltip text. Default: the library locale (`fr-FR`). */
-  locale?: LocaleName;
+  locale?: LocaleName | undefined;
 }
 
 export interface BarTooltipOptions extends TooltipOptions {
