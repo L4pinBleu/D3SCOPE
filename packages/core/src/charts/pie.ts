@@ -53,7 +53,7 @@ export interface PieChartOptions {
   /** Called when a slice is clicked. */
   onSliceClick?: (slice: PieSlice, event: MouseEvent) => void;
   /** Locale for default tooltip text. Default: the library locale (`fr-FR`). */
-  locale?: LocaleName;
+  locale?: LocaleName | undefined;
 }
 
 export interface PieLayout {
