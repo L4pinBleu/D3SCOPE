@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "rootDir": "../..",
+    "outDir": "dist",
+    "types": ["node"],
+    "paths": {
+      "@d3scope/core": ["../../packages/core/src/index.ts"],
+      "@d3scope/core/plugin": ["../../packages/core/src/plugin/index.ts"]
+    }
+  },
+  "include": ["src", "tests", "*.config.ts"]
+}

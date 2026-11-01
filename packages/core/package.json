@@ -1,0 +1,69 @@
+{
+  "name": "@d3scope/core",
+  "version": "0.1.0",
+  "description": "D3SCOPE core: charts, scales, axes, legends, interactions, export and Plugin API",
+  "license": "AGPL-3.0-or-later",
+  "author": "L4pinBleu",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./plugin": {
+      "types": "./dist/plugin/index.d.ts",
+      "import": "./dist/plugin/index.js"
+    },
+    "./element": {
+      "types": "./dist/element/index.d.ts",
+      "import": "./dist/element/index.js"
+    },
+    "./animation": {
+      "types": "./dist/animation/index.d.ts",
+      "import": "./dist/animation/index.js"
+    },
+    "./animation/motion": {
+      "types": "./dist/animation/motion.d.ts",
+      "import": "./dist/animation/motion.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/d3-axis": "^3.0.6",
+    "@types/d3-format": "^3.0.4",
+    "@types/d3-scale": "^4.0.9",
+    "@types/d3-selection": "^3.0.12",
+    "@types/d3-time-format": "^4.0.3",
+    "@types/node": "^24.19.2",
+    "@vitest/coverage-v8": "^5.0.5",
+    "jsdom": "^26.1.0",
+    "motion": "^12.43.0",
+    "tsup": "^9.0.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "d3-axis": "^3.0.0",
+    "d3-format": "^3.1.2",
+    "d3-scale": "^4.0.2",
+    "d3-selection": "^3.0.0",
+    "d3-time-format": "^4.1.0"
+  },
+  "peerDependencies": {
+    "motion": "^12.0.0"
+  },
+  "peerDependenciesMeta": {
+    "motion": {
+      "optional": true
+    }
+  }
+}

@@ -1,0 +1,164 @@
+:root {
+  --pg-border: #d0d7de;
+  --pg-muted: #59636e;
+  color-scheme: light;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  color: #1f2328;
+  background: #f6f8fa;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+  display: grid;
+  gap: 16px;
+}
+
+h1 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.hint {
+  margin: 4px 0 0;
+  color: var(--pg-muted);
+  font-size: 14px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: end;
+}
+
+.controls label {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--pg-muted);
+}
+
+.controls .check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+select {
+  padding: 6px 8px;
+  border: 1px solid var(--pg-border);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.editor,
+.preview,
+.snippet {
+  background: #fff;
+  border: 1px solid var(--pg-border);
+  border-radius: 8px;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.editor label {
+  font-size: 13px;
+  color: var(--pg-muted);
+}
+
+textarea {
+  min-height: 260px;
+  padding: 8px;
+  border: 1px solid var(--pg-border);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  resize: vertical;
+}
+
+.error {
+  margin: 0;
+  color: #cf222e;
+  font-size: 13px;
+}
+
+/* Theme tokens are set on this frame; the chart reads them through var(). */
+.frame {
+  border: 1px dashed var(--pg-border);
+  border-radius: 6px;
+  padding: 8px;
+  overflow: auto;
+  background: var(--d3s-surface, #ffffff);
+  color: var(--d3s-text, #1f2328);
+}
+
+.chart {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+button {
+  padding: 6px 12px;
+  border: 1px solid var(--pg-border);
+  border-radius: 6px;
+  background: #f6f8fa;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.snippet-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--pg-muted);
+}
+
+pre {
+  margin: 0;
+  padding: 10px;
+  background: #f6f8fa;
+  border-radius: 6px;
+  overflow: auto;
+  font-size: 13px;
+}
