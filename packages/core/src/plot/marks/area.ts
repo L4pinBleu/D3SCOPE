@@ -3,7 +3,9 @@
  * (value 0, clamped into the domain) up to y. `stackedArea` stacks the series
  * per x with `stackY` (optionally normalised with `normalizeStack`) and draws
  * each series as the band between its y0 and y1 lines. Rows with a missing
- * or non-finite x or y are not drawn and do not reach a domain.
+ * or non-finite x or y are not drawn and do not reach a domain. A stacked
+ * series with a single point has no area and is not drawn (a band needs two
+ * x positions).
  */
 import { cssVar, LIGHT_THEME } from '../../theme/index.js';
 import { normalizeStack, stackY, type StackedRow } from '../transforms.js';

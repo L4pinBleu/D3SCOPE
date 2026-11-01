@@ -56,8 +56,6 @@ export function cell<T>(rows: readonly T[], options: CellOptions<T>): Mark {
   };
   const xSlots = distinct('x');
   const ySlots = distinct('y');
-  const xi = new Map(xSlots.map((s, i) => [keyOf(s), i]));
-  const yi = new Map(ySlots.map((s, i) => [keyOf(s), i]));
 
   const fills = valid.map((v) => v.fill);
   const vmin = Math.min(...fills);
@@ -76,13 +74,13 @@ export function cell<T>(rows: readonly T[], options: CellOptions<T>): Mark {
       const opacity = options.opacity ?? 1;
       const xBand = ctx.x.bandwidth();
       const yBand = ctx.y.bandwidth();
-      const cellW = xBand > 0 ? xBand : ctx.innerWidth / Math.max(xSlots.length, 1);
-      const cellH = yBand > 0 ? yBand : ctx.innerHeight / Math.max(ySlots.length, 1);
+      const cellW = xBand > 0 ? xBand : continuousStep(ctx.x, xSlots, ctx.innerWidth);
+      const cellH = yBand > 0 ? yBand : continuousStep(ctx.y, ySlots, ctx.innerHeight);
       for (const v of valid) {
-        // Band axes place each slot at its band start; a continuous axis
-        // gives every distinct value one equal share of the plot area.
-        const x = xBand > 0 ? ctx.x.position(String(v.x)) : (xi.get(keyOf(v.x)) ?? 0) * cellW;
-        const y = yBand > 0 ? ctx.y.position(String(v.y)) : (yi.get(keyOf(v.y)) ?? 0) * cellH;
+        // Band axes place each cell at its band start. A continuous axis centres
+        // the cell on its value, so cells line up with the axis ticks.
+        const x = xBand > 0 ? ctx.x.position(String(v.x)) : ctx.x.position(v.x) - cellW / 2;
+        const y = yBand > 0 ? ctx.y.position(String(v.y)) : ctx.y.position(v.y) - cellH / 2;
         const rect = document.createElementNS(SVG_NS, 'rect');
         rect.setAttribute('class', 'd3s-cell');
         rect.setAttribute('x', String(x));
@@ -100,6 +98,25 @@ export function cell<T>(rows: readonly T[], options: CellOptions<T>): Mark {
 /** Key of a slot, so that `1` and `'1'` share one cell on one axis. */
 function keyOf(v: Slot): string {
   return `${typeof v}:${String(v)}`;
+}
+
+/**
+ * Pixel width of one cell on a continuous axis: the smallest gap between two
+ * distinct values, so neighbouring cells touch but do not overlap. With a
+ * single value the whole extent is used.
+ */
+function continuousStep(
+  scale: { position(v: Slot): number },
+  slots: readonly Slot[],
+  extent: number,
+): number {
+  const positions = slots.map((s) => scale.position(s)).sort((a, b) => a - b);
+  let step = Number.POSITIVE_INFINITY;
+  for (let i = 1; i < positions.length; i++) {
+    const gap = (positions[i] ?? 0) - (positions[i - 1] ?? 0);
+    if (gap > 0 && gap < step) step = gap;
+  }
+  return Number.isFinite(step) ? step : extent;
 }
 
 function sameSlot(a: Slot, b: Slot): boolean {

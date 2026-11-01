@@ -252,7 +252,7 @@ describe('cell heatmap', () => {
     svg.remove();
   });
 
-  it('a numeric (non-band) axis gives each distinct value an equal share', () => {
+  it('a numeric (non-band) axis centres each cell on its value, one gap wide', () => {
     const rows: { x: number; y: number; v: number }[] = [
       { x: 1, y: 1, v: 1 },
       { x: 2, y: 1, v: 2 },
@@ -267,8 +267,32 @@ describe('cell heatmap', () => {
     });
     const rects = cells(svg);
     expect(rects).toHaveLength(2);
-    expect(Number(nth(rects, 0).getAttribute('width'))).toBeCloseTo(ctx.innerWidth / 2, 5);
-    expect(Number(nth(rects, 0).getAttribute('height'))).toBeCloseTo(ctx.innerHeight / 1, 5);
+    // Two distinct x values one unit apart: each cell is one gap wide (the
+    // full plot width divided by the domain span) and centred on its value.
+    const gap = Math.abs(ctx.x.position(2) - ctx.x.position(1));
+    expect(Number(nth(rects, 0).getAttribute('width'))).toBeCloseTo(gap, 5);
+    expect(Number(nth(rects, 0).getAttribute('x')) + gap / 2).toBeCloseTo(ctx.x.position(1), 5);
+    expect(Number(nth(rects, 1).getAttribute('x')) + gap / 2).toBeCloseTo(ctx.x.position(2), 5);
+    expect(Number(nth(rects, 0).getAttribute('height'))).toBeCloseTo(ctx.innerHeight, 5);
+    svg.remove();
+  });
+
+  it('a numeric axis puts a larger value to the right, whatever the row order', () => {
+    const rows = [
+      { x: 10, y: 1, v: 1 },
+      { x: 1, y: 1, v: 5 },
+    ];
+    const svg = makeSvg();
+    plot(svg, {
+      width: 300,
+      height: 200,
+      x: { type: 'linear' },
+      marks: [cell(rows, { x: 'x', y: 'y', fill: 'v' })],
+    });
+    const rects = cells(svg);
+    expect(Number(nth(rects, 0).getAttribute('x'))).toBeGreaterThan(
+      Number(nth(rects, 1).getAttribute('x')),
+    );
     svg.remove();
   });
 });

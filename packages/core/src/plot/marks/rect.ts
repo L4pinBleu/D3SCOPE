@@ -82,6 +82,9 @@ function barMark<T>(rows: readonly T[], options: RectOptions<T>, orientation: 'x
   };
   /** The value of a row as the transforms expect it: NaN when missing. */
   const valueOf = (row: T): number => toNumber(value(row)) ?? Number.NaN;
+  // Rows without a plottable position never take part: not in a stack, not in a
+  // group, not in a domain, and not drawn.
+  const plottable = rows.filter((row) => isPlottable(main(row)));
 
   // Only plottable, finite values reach the domain: a single missing value
   // must not make the whole axis unreadable.
@@ -90,13 +93,13 @@ function barMark<T>(rows: readonly T[], options: RectOptions<T>, orientation: 'x
     mode === 'stack'
       ? options.normalize
         ? normalizeStack(
-            stackY(rows, {
+            stackY(plottable, {
               x: (row) => main(row) as Primitive,
               y: valueOf,
               series: seriesOf,
             }),
           )
-        : stackY(rows, {
+        : stackY(plottable, {
             x: (row) => main(row) as Primitive,
             y: valueOf,
             series: seriesOf,
@@ -104,7 +107,7 @@ function barMark<T>(rows: readonly T[], options: RectOptions<T>, orientation: 'x
       : [];
   const dodgeSlots =
     mode === 'group'
-      ? dodge(rows, { x: (row) => main(row) as Primitive, y: valueOf, series: seriesOf })
+      ? dodge(plottable, { x: (row) => main(row) as Primitive, y: valueOf, series: seriesOf })
       : [];
 
   const valueValues = (): number[] => {
@@ -117,7 +120,7 @@ function barMark<T>(rows: readonly T[], options: RectOptions<T>, orientation: 'x
       return out;
     }
     const out: number[] = [];
-    for (const row of rows) {
+    for (const row of plottable) {
       const v = toNumber(value(row));
       if (v !== null) out.push(v);
     }
@@ -128,7 +131,7 @@ function barMark<T>(rows: readonly T[], options: RectOptions<T>, orientation: 'x
   const seriesCategories = (): string[] => {
     if (getSeries === undefined) return [];
     const out: string[] = [];
-    for (const row of rows) {
+    for (const row of plottable) {
       const s = seriesOf(row);
       if (s !== MISSING_SERIES && !out.includes(s)) out.push(s);
     }
@@ -151,7 +154,7 @@ function barMark<T>(rows: readonly T[], options: RectOptions<T>, orientation: 'x
       if (getSeries !== undefined) return seriesCategories();
       if (fill.kind !== 'category') return [];
       const out: string[] = [];
-      for (const row of rows) {
+      for (const row of plottable) {
         const c = row[fill.field];
         if (typeof c === 'string' && c !== '') out.push(c);
       }
@@ -197,7 +200,7 @@ function barMark<T>(rows: readonly T[], options: RectOptions<T>, orientation: 'x
         // The bars of one category sit side by side inside the band: the slot
         // width is band / slots, with 2 px of inner padding (never below 1 px).
         for (const s of dodgeSlots) {
-          const row = rows[s.index];
+          const row = plottable[s.index];
           if (row === undefined) continue;
           const v = toNumber(value(row));
           const slotValue = main(row);

@@ -48,20 +48,22 @@ export function dot<T>(rows: readonly T[], options: DotOptions<T>): Mark {
   const getY = accessor(options.y);
   const fill: FillMode<T> = fillMode(options.fill, rows);
 
-  // Only rows with a plottable x and a finite y are kept.
+  // Only rows with a plottable x and a finite y are kept; with `size`, a row
+  // with a missing size is dropped too, so it never reaches a domain.
+  const getSize = options.size === undefined ? undefined : accessor(options.size);
   const valid: { row: T; x: Primitive; y: number }[] = [];
   for (const row of rows) {
     const x = getX(row);
     const y = toNumber(getY(row));
     if (!isPlottable(x) || y === null) continue;
+    if (getSize !== undefined && toNumber(getSize(row)) === null) continue;
     valid.push({ row, x, y });
   }
 
-  // Bubble sizes: when `size` is given, only rows with a finite size count
-  // for the min/max, and rows with a missing size are dropped entirely.
+  // Bubble sizes: when `size` is given, the min/max come from the rows that
+  // have a size.
   let radius: (point: { row: T }) => number | null;
-  if (options.size !== undefined) {
-    const getSize = accessor(options.size);
+  if (getSize !== undefined) {
     const present: number[] = [];
     for (const point of valid) {
       const s = toNumber(getSize(point.row));
