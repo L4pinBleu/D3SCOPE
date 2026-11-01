@@ -5,7 +5,9 @@
 import { select } from 'd3-selection';
 import type { AxisDomain, AxisScale } from 'd3-axis';
 import { createAxis, renderAxis } from '../axes/index.js';
+import { renderCategoricalLegend, type LegendItem } from '../legends/index.js';
 import { cssVar, LIGHT_THEME } from '../theme/index.js';
+import { createColorScale } from './color.js';
 import { gridX, gridY } from './grid.js';
 import { createPlotScale, inferKind, tickValues } from './scales.js';
 import type { AxisSpec, Mark, PlotContext, PlotMargin, PlotSpec, Primitive } from './types.js';
@@ -14,6 +16,8 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const DEFAULT_MARGIN: PlotMargin = { top: 16, right: 16, bottom: 28, left: 40 };
 /** Space reserved for an axis title, in pixels. */
 const TITLE_SPACE = 18;
+/** Space reserved above the plot for the colour legend, in pixels. */
+const LEGEND_SPACE = 22;
 /** Unique ids for clip paths, so several plots on one page do not clash. */
 let clipCounter = 0;
 
@@ -27,7 +31,9 @@ export function plot(svg: SVGSVGElement, spec: PlotSpec): PlotContext {
   }
   const xSpec: AxisSpec = spec.x ?? {};
   const ySpec: AxisSpec = spec.y ?? {};
-  const margin = resolveMargin(spec, xSpec, ySpec);
+  const color = createColorScale(collectColors(spec.marks), spec.color);
+  const showLegend = spec.color?.legend === true && color.domain.length > 0;
+  const margin = resolveMargin(spec, xSpec, ySpec, showLegend);
   const innerWidth = spec.width - margin.left - margin.right;
   const innerHeight = spec.height - margin.top - margin.bottom;
   if (innerWidth <= 0 || innerHeight <= 0) {
@@ -77,6 +83,7 @@ export function plot(svg: SVGSVGElement, spec: PlotSpec): PlotContext {
     ySpec,
     locale: spec.locale,
     outOfDomain,
+    color,
     layer(name) {
       const g = document.createElementNS(SVG_NS, 'g');
       g.setAttribute('class', `d3s-layer d3s-${name}`);
@@ -93,14 +100,45 @@ export function plot(svg: SVGSVGElement, spec: PlotSpec): PlotContext {
   for (const mark of [...gridMarks, ...spec.marks]) mark.render(ctx);
 
   drawAxes(ctx, root);
+  if (showLegend) {
+    drawLegend(
+      svg,
+      color.domain.map((c) => ({ label: c, color: color(c) })),
+      margin,
+    );
+  }
   return ctx;
 }
 
-function resolveMargin(spec: PlotSpec, xSpec: AxisSpec, ySpec: AxisSpec): PlotMargin {
+function resolveMargin(
+  spec: PlotSpec,
+  xSpec: AxisSpec,
+  ySpec: AxisSpec,
+  legend: boolean,
+): PlotMargin {
   const m = { ...DEFAULT_MARGIN, ...spec.margin };
   if (ySpec.label !== undefined) m.left += TITLE_SPACE;
   if (xSpec.label !== undefined) m.bottom += TITLE_SPACE;
+  if (legend) m.top += LEGEND_SPACE;
   return m;
+}
+
+/** Draw the colour legend in the space above the plot area. */
+function drawLegend(svg: SVGSVGElement, items: readonly LegendItem[], margin: PlotMargin): void {
+  const g = document.createElementNS(SVG_NS, 'g');
+  g.setAttribute('class', 'd3s-legend');
+  g.setAttribute('transform', `translate(${String(margin.left)},4)`);
+  svg.appendChild(g);
+  renderCategoricalLegend(g, items, { orientation: 'horizontal' });
+}
+
+function collectColors(marks: readonly Mark[]): string[] {
+  const out: string[] = [];
+  for (const mark of marks) {
+    const values = mark.colorValues?.();
+    if (values) out.push(...values);
+  }
+  return out;
 }
 
 function collect(marks: readonly Mark[], key: 'xValues' | 'yValues'): Primitive[] {

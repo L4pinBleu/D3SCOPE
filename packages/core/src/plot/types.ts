@@ -68,6 +68,8 @@ export interface PlotSpec {
   margin?: Partial<PlotMargin>;
   x?: AxisSpec;
   y?: AxisSpec;
+  /** Colour categories and legend. */
+  color?: ColorSpec;
   /** Locale for default tick labels. Default: the library locale. */
   locale?: LocaleName | undefined;
   /** Marks, drawn in this order (later marks are drawn on top). */
@@ -109,19 +111,39 @@ export interface PlotContext {
    * plot area, and the SVG gets `data-d3s-out-of-domain="true"`.
    */
   readonly outOfDomain: { readonly x: number; readonly y: number };
+  /** Colour of each category, from the `color` spec or the marks' categories. */
+  readonly color: ColorScale;
   /** A new group in the plot area, drawn after the groups created before it. */
   layer(name: string): SVGGElement;
+}
+
+/** Colour categories: marks declare them, the plot maps each one to a colour. */
+export interface ColorSpec {
+  /** Categories, in order. Default: the categories the marks declare, by first appearance. */
+  domain?: readonly string[];
+  /** Colours, used in order and then repeated. Default: the theme palette. */
+  range?: readonly string[];
+  /** Draw a horizontal legend above the plot area. Default: `false`. */
+  legend?: boolean;
+}
+
+/** Maps a category to its colour. Only categories of the domain are known. */
+export interface ColorScale {
+  readonly domain: readonly string[];
+  (category: string): string;
 }
 
 /**
  * A mark: one visual layer of the plot (points, bars, gridlines…).
  *
  * `xValues` and `yValues` list the values the mark needs on each axis, so the
- * domain can be computed. `render` draws the mark with `ctx.layer()`.
+ * domain can be computed. `colorValues` lists the colour categories it uses.
+ * `render` draws the mark with `ctx.layer()`.
  */
 export interface Mark {
   readonly name: string;
   xValues?(): readonly Primitive[];
   yValues?(): readonly Primitive[];
+  colorValues?(): readonly string[];
   render(ctx: PlotContext): void;
 }
