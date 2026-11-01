@@ -14,6 +14,8 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const DEFAULT_MARGIN: PlotMargin = { top: 16, right: 16, bottom: 28, left: 40 };
 /** Space reserved for an axis title, in pixels. */
 const TITLE_SPACE = 18;
+/** Unique ids for clip paths, so several plots on one page do not clash. */
+let clipCounter = 0;
 
 /**
  * Draw `spec` into `svg`. Any previous content of the SVG is replaced, so the
@@ -38,14 +40,29 @@ export function plot(svg: SVGSVGElement, spec: PlotSpec): PlotContext {
   const yKind = ySpec.type ?? inferKind(yValues);
   const x = createPlotScale(xKind, xValues, [0, innerWidth], xSpec);
   const y = createPlotScale(yKind, yValues, [innerHeight, 0], ySpec);
+  const outOfDomain = { x: countOutside(xValues, xSpec), y: countOutside(yValues, ySpec) };
 
   svg.replaceChildren();
   svg.setAttribute('width', String(spec.width));
   svg.setAttribute('height', String(spec.height));
+  if (outOfDomain.x + outOfDomain.y > 0) svg.setAttribute('data-d3s-out-of-domain', 'true');
   const root = document.createElementNS(SVG_NS, 'g');
   root.setAttribute('class', 'd3s-plot');
   root.setAttribute('transform', `translate(${String(margin.left)},${String(margin.top)})`);
   svg.appendChild(root);
+
+  // Every mark layer is clipped to the plot area, so values outside min/max
+  // do not spill over the axes.
+  const clipId = `d3s-clip-${String(++clipCounter)}`;
+  const defs = document.createElementNS(SVG_NS, 'defs');
+  const clip = document.createElementNS(SVG_NS, 'clipPath');
+  clip.setAttribute('id', clipId);
+  const clipRect = document.createElementNS(SVG_NS, 'rect');
+  clipRect.setAttribute('width', String(innerWidth));
+  clipRect.setAttribute('height', String(innerHeight));
+  clip.appendChild(clipRect);
+  defs.appendChild(clip);
+  root.appendChild(defs);
 
   const ctx: PlotContext = {
     svg,
@@ -59,9 +76,11 @@ export function plot(svg: SVGSVGElement, spec: PlotSpec): PlotContext {
     xSpec,
     ySpec,
     locale: spec.locale,
+    outOfDomain,
     layer(name) {
       const g = document.createElementNS(SVG_NS, 'g');
       g.setAttribute('class', `d3s-layer d3s-${name}`);
+      g.setAttribute('clip-path', `url(#${clipId})`);
       root.appendChild(g);
       return g;
     },
@@ -91,6 +110,24 @@ function collect(marks: readonly Mark[], key: 'xValues' | 'yValues'): Primitive[
     if (values) out.push(...values);
   }
   return out;
+}
+
+/** Number of values outside a fixed `min`/`max` on a continuous axis. Band axes have none. */
+export function countOutside(values: readonly Primitive[], spec: AxisSpec): number {
+  if (spec.min === undefined && spec.max === undefined) return 0;
+  const lo = spec.min === undefined ? -Infinity : toNum(spec.min);
+  const hi = spec.max === undefined ? Infinity : toNum(spec.max);
+  let count = 0;
+  for (const v of values) {
+    if (typeof v === 'string') continue;
+    const n = toNum(v);
+    if (n < lo || n > hi) count++;
+  }
+  return count;
+}
+
+function toNum(v: number | Date): number {
+  return v instanceof Date ? v.getTime() : v;
 }
 
 function drawAxes(ctx: PlotContext, root: SVGGElement): void {

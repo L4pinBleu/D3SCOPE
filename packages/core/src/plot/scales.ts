@@ -115,7 +115,12 @@ export function createPlotScale(
       d3: scale,
       position: (v) => scale(String(v)) ?? Number.NaN,
       bandwidth: () => scale.bandwidth(),
-      ticks: () => categories,
+      ticks: () => {
+        if (spec.step !== undefined) {
+          throw new RangeError('plot: step is only supported on linear axes');
+        }
+        return categories;
+      },
       domain: categories,
       range: r,
     };

@@ -104,6 +104,11 @@ export interface PlotContext {
   readonly xSpec: AxisSpec;
   readonly ySpec: AxisSpec;
   readonly locale: LocaleName | undefined;
+  /**
+   * Values outside a fixed `min`/`max`, per axis. They are drawn clipped to the
+   * plot area, and the SVG gets `data-d3s-out-of-domain="true"`.
+   */
+  readonly outOfDomain: { readonly x: number; readonly y: number };
   /** A new group in the plot area, drawn after the groups created before it. */
   layer(name: string): SVGGElement;
 }
