@@ -2,17 +2,22 @@
 
 > A modern, extensible charting library built on [D3.js](https://d3js.org/).
 
-**Status:** 🚧 pre-alpha. Project setup is in progress and there is no usable
-API yet.
+**Status:** 🟡 `0.1.0`, first release. The chart API is usable; it may still
+change before `1.0`. The core is not yet published to npm: install it from
+this repository.
+
+Documentation (in French): [getting started](./docs/guide/demarrage.md) ·
+[`<d3scope-chart>`](./docs/guide/element.md) · [plugins](./docs/guide/plugins.md) ·
+[animations](./docs/guide/animations.md) · [changelog](./CHANGELOG.md).
 
 ## What it is
 
 D3SCOPE is a **library**, not an application. It provides:
 
-- **Core charts**: bar, line, area, pie, scatter, built on shared axes,
-  scales and legends.
-- **Interactivity**: tooltips, hover, zoom, click handlers, and data updates.
-- **Export**: PNG first, with SVG planned.
+- **Core charts**: bar, line, area, pie, donut and sparkline, built on shared
+  axes, scales and legends. A `<d3scope-chart>` element writes them in HTML.
+- **Interactivity**: tooltips (SVG or HTML), click handlers, and data updates.
+- **Export**: PNG and SVG.
 - **A plugin system**: extra chart types, themes and palettes ship as separate
   packages and load at runtime, from a `plugins/` directory or as an external
   JavaScript module.
