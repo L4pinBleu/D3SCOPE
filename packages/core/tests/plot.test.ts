@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
 import {
+  countOutside,
   gridX,
   gridY,
   plot,
@@ -263,5 +264,79 @@ describe('plot()', () => {
     expect(() => plot(svg, { width: 0, height: 100, marks: [] })).toThrow(RangeError);
     expect(() => plot(svg, { width: 40, height: 100, marks: [] })).toThrow(RangeError);
     svg.remove();
+  });
+});
+
+describe('out-of-domain values and clipping (review fixes)', () => {
+  /** A mark that opens one layer, so the clip attribute can be checked. */
+  const layerMark = (): Mark => ({
+    name: 'layer',
+    render(ctx) {
+      ctx.layer('probe');
+    },
+  });
+
+  it('rejects step on a band axis when the scale is read', () => {
+    const s = createPlotScale('band', ['a', 'b'], [0, 100], { step: 1 });
+    expect(() => s.ticks(5)).toThrow(RangeError);
+  });
+
+  it('counts values outside a fixed min and max, for numbers and dates', () => {
+    expect(countOutside([0, 50, 120, -5], { min: 0, max: 100 })).toBe(2);
+    expect(
+      countOutside([new Date(0), new Date(1e12)], { min: new Date(0), max: new Date(10) }),
+    ).toBe(1);
+  });
+
+  it('counts nothing without bounds, and ignores category names', () => {
+    expect(countOutside([0, 1e9], {})).toBe(0);
+    expect(countOutside(['a', 'b'], { min: 0, max: 1 })).toBe(0);
+  });
+
+  it('flags the SVG and the context when values fall outside the domain', () => {
+    const svg = makeSvg();
+    const m = probe(undefined, [10, 150]);
+    const ctx = plot(svg, { width: 300, height: 200, y: { min: 0, max: 100 }, marks: [m] });
+    expect(ctx.outOfDomain).toEqual({ x: 0, y: 1 });
+    expect(svg.getAttribute('data-d3s-out-of-domain')).toBe('true');
+    svg.remove();
+  });
+
+  it('does not flag the SVG when every value is inside the domain', () => {
+    const svg = makeSvg();
+    const ctx = plot(svg, {
+      width: 300,
+      height: 200,
+      y: { min: 0, max: 100 },
+      marks: [probe(undefined, [10, 90])],
+    });
+    expect(ctx.outOfDomain).toEqual({ x: 0, y: 0 });
+    expect(svg.hasAttribute('data-d3s-out-of-domain')).toBe(false);
+    svg.remove();
+  });
+
+  it('clips every mark layer to a clip path that covers the plot area', () => {
+    const svg = makeSvg();
+    plot(svg, { width: 300, height: 200, marks: [layerMark()] });
+    const layer = svg.querySelector<SVGGElement>('.d3s-layer');
+    const clipRef = layer?.getAttribute('clip-path') ?? '';
+    const id = clipRef.replace(/^url\(#(.+)\)$/, '$1');
+    expect(id).not.toBe('');
+    const rect = svg.querySelector(`clipPath#${id} rect`);
+    expect(rect?.getAttribute('width')).toBe(String(300 - 40 - 16));
+    expect(rect?.getAttribute('height')).toBe(String(200 - 16 - 28));
+    svg.remove();
+  });
+
+  it('gives each plot its own clip id', () => {
+    const a = makeSvg();
+    const b = makeSvg();
+    plot(a, { width: 300, height: 200, marks: [layerMark()] });
+    plot(b, { width: 300, height: 200, marks: [layerMark()] });
+    const idA = a.querySelector('.d3s-layer')?.getAttribute('clip-path');
+    const idB = b.querySelector('.d3s-layer')?.getAttribute('clip-path');
+    expect(idA).not.toBe(idB);
+    a.remove();
+    b.remove();
   });
 });
