@@ -12,6 +12,7 @@ export {
   stackedArea,
   histogram,
   cell,
+  boxPlot,
 } from './marks/index.js';
 export type {
   RectOptions,
@@ -23,7 +24,19 @@ export type {
   StackedAreaOptions,
   HistogramOptions,
   CellOptions,
+  BoxPlotOptions,
 } from './marks/index.js';
+export {
+  radarChart,
+  polarArea,
+  polarPoint,
+  polygonPoints,
+  sectorPath,
+  niceMax,
+  layoutRadar,
+  layoutPolarArea,
+} from './polar.js';
+export type { RadarSpec, RadarSeries, PolarAreaSpec, PolarAreaDatum, PolarPoint } from './polar.js';
 export { stackY, normalizeStack, dodge, bin, niceBinWidth } from './transforms.js';
 export type { StackAccessors, StackedRow, Slot, Bin } from './transforms.js';
 export { createColorScale } from './color.js';

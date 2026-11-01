@@ -14,6 +14,10 @@ import { renderCategoricalLegend, type LegendItem } from '../legends/index.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const TAU = Math.PI * 2;
+/** Space kept around a polar chart for its labels, in pixels. */
+const RADAR_MARGIN = 40;
+/** Distance from a ring or sector edge to its label, in pixels. */
+const LABEL_GAP = 14;
 
 /** A point in SVG user space. */
 export interface PolarPoint {
@@ -133,8 +137,6 @@ export interface RadarSpec {
   stroke?: number;
   /** Draw the axis labels. Default: `true`. */
   labels?: boolean;
-  /** Locale for numbers. Default: the library locale. */
-  locale?: 'fr-FR' | 'en-US';
 }
 
 /** Compute the radar geometry. Pure: no DOM access. */
@@ -147,7 +149,8 @@ export function layoutRadar(spec: RadarSpec): {
 } {
   const cx = spec.width / 2;
   const cy = spec.height / 2;
-  const radius = Math.max(0, Math.min(spec.width, spec.height) / 2 - 24);
+  // The margin leaves room for the axis labels outside the outer ring.
+  const radius = Math.max(0, Math.min(spec.width, spec.height) / 2 - RADAR_MARGIN);
   const largest = Math.max(...spec.series.flatMap((s) => s.values.filter(Number.isFinite)), 0);
   const max = spec.max ?? niceMax(largest);
   return { cx, cy, radius, max, levels: spec.levels ?? 4 };
@@ -212,7 +215,7 @@ export function radarChart(svg: SVGSVGElement, spec: RadarSpec): void {
   if (spec.labels !== false) {
     for (let i = 0; i < spec.axes.length; i++) {
       const angle = (i * TAU) / spec.axes.length;
-      const at = polarPoint(cx, cy, radius * 1.12, angle);
+      const at = polarPoint(cx, cy, radius + LABEL_GAP, angle);
       const anchor =
         Math.abs(Math.sin(angle)) < 1e-9 ? 'middle' : Math.sin(angle) > 0 ? 'start' : 'end';
       const label = make('text', {
@@ -290,8 +293,6 @@ export interface PolarAreaSpec {
   color?: ColorSpec;
   /** Draw the sector labels. Default: `true`. */
   labels?: boolean;
-  /** Locale for numbers. Default: the library locale. */
-  locale?: 'fr-FR' | 'en-US';
 }
 
 /** Compute the polar area geometry. Pure: no DOM access. */
@@ -303,7 +304,7 @@ export function layoutPolarArea(spec: PolarAreaSpec): {
 } {
   const cx = spec.width / 2;
   const cy = spec.height / 2;
-  const outerRadius = Math.max(0, Math.min(spec.width, spec.height) / 2 - 12);
+  const outerRadius = Math.max(0, Math.min(spec.width, spec.height) / 2 - RADAR_MARGIN);
   const largest = Math.max(...spec.data.map((d) => d.value).filter(Number.isFinite), 0);
   const max = spec.max ?? niceMax(largest);
   return { cx, cy, radius: outerRadius, max };
@@ -350,7 +351,7 @@ export function polarArea(svg: SVGSVGElement, spec: PolarAreaSpec): void {
       }),
     );
     if (spec.labels !== false) {
-      const at = polarPoint(cx, cy, r * 1.1, start + sectorAngle / 2);
+      const at = polarPoint(cx, cy, Math.min(r + LABEL_GAP, radius), start + sectorAngle / 2);
       const anchor =
         Math.abs(Math.sin(start + sectorAngle / 2)) < 1e-9
           ? 'middle'

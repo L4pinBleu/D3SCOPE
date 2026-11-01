@@ -75,8 +75,8 @@ describe('radarChart', () => {
     const numbers = (polygon?.getAttribute('points') ?? '')
       .split(' ')
       .map((pair) => pair.split(',').map(Number));
-    // Grid radius: min(300, 300)/2 - 24 = 126, centred at (150, 150).
-    expect(numbers[0]?.[1]).toBeCloseTo(150 - 126, 6);
+    // Grid radius: min(300, 300)/2 - 40 = 110, centred at (150, 150).
+    expect(numbers[0]?.[1]).toBeCloseTo(150 - 110, 6);
     expect(numbers[1]?.[1]).toBeCloseTo(150);
     svg.remove();
   });
@@ -179,7 +179,7 @@ describe('polarArea', () => {
     const svg = makeSvg();
     polarArea(svg, spec);
     const paths = svg.querySelectorAll<SVGPathElement>('path.d3s-polar-sector');
-    // radius = min(300, 300)/2 - 12 = 138, centred at (150, 150).
+    // radius = min(300, 300)/2 - 40 = 110, centred at (150, 150).
     const distances = [...paths].map((path) => {
       const d = path.getAttribute('d') ?? '';
       const m = /L([^ ]+)/.exec(d);
@@ -250,7 +250,7 @@ describe('layoutPolarArea', () => {
     });
     expect(layout.cx).toBe(150);
     expect(layout.cy).toBe(100);
-    expect(layout.radius).toBe(88);
+    expect(layout.radius).toBe(60);
     expect(layout.max).toBe(50);
   });
 });

@@ -6,3 +6,4 @@ export { text, type TextOptions } from './text.js';
 export { area, stackedArea, type AreaOptions, type StackedAreaOptions } from './area.js';
 export { histogram, type HistogramOptions } from './histogram.js';
 export { cell, type CellOptions } from './cell.js';
+export { boxPlot, type BoxPlotOptions } from './boxplot.js';
