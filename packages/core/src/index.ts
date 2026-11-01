@@ -20,3 +20,4 @@ export * from './interaction/tooltip.js';
 export * from './export/png.js';
 export * from './export/svg.js';
 export * from './theme/index.js';
+export * from './plot/index.js';
