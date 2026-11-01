@@ -153,4 +153,3 @@ Règles :
 - `unregisterPlugin(name)` retire ses marks, échelles et transformations.
 - Accès : `createMark(name, rows, options)`, `applyTransform(name, rows, options)`,
   `listMarks()`, `listScales()`, `listTransforms()`.
-
