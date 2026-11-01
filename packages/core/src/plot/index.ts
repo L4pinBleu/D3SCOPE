@@ -1,4 +1,4 @@
-export { plot } from './plot.js';
+export { countOutside, plot } from './plot.js';
 export { gridX, gridY } from './grid.js';
 export { createPlotScale, inferKind, continuousDomain, stepTicks, tickValues } from './scales.js';
 export type {
