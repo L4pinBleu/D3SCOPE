@@ -9,9 +9,28 @@
  * Only what this module exports is the plugin API (LICENSE-EXCEPTION.md §1).
  */
 import { registerTheme, type ThemeTokens, unregisterTheme, hasTheme } from '../theme/index.js';
+import type { Mark } from '../plot/types.js';
+import {
+  addExtension,
+  BUILTIN_SCALES,
+  getMarkFactory,
+  getScaleFactory,
+  getTransformFn,
+  listMarkNames,
+  listScaleNames,
+  listTransformNames,
+  type MarkFactory,
+  type ScaleFactory,
+  ownerOf,
+  removeExtensionsOf,
+  type TransformFn,
+} from './extensions.js';
 
-/** Version of this Plugin API. Follows semver: breaking changes bump the major. */
-export const PLUGIN_API_VERSION = '1.0.0';
+/**
+ * Version of this Plugin API. Follows semver: breaking changes bump the major.
+ * 1.1.0 adds the extension points `marks`, `scales` and `transforms`.
+ */
+export const PLUGIN_API_VERSION = '1.1.0';
 
 /** A chart a plugin provides: draws `data` into `svg` with `options`. */
 export interface ChartDefinition<TData = unknown, TOptions = unknown> {
@@ -31,6 +50,15 @@ export interface PluginDefinition {
   themes?: Record<string, ThemeTokens>;
   /** Colour palettes by name: ordered lists of colours. */
   palettes?: Record<string, readonly string[]>;
+  /** Mark factories by name (API 1.1). Names are global, like chart names. */
+  marks?: Record<string, MarkFactory>;
+  /**
+   * Scale factories by name (API 1.1). A registered name can be used as an
+   * axis `type`. The built-in types `linear`, `log`, `time` and `band` are reserved.
+   */
+  scales?: Record<string, ScaleFactory>;
+  /** Pure data transforms by name (API 1.1). */
+  transforms?: Record<string, TransformFn>;
 }
 
 /** Error for an invalid or incompatible plugin. */
@@ -112,6 +140,44 @@ export function registerPlugin(plugin: PluginDefinition): void {
       );
     }
   }
+  for (const [kind, names, label] of [
+    ['mark', Object.keys(plugin.marks ?? {}), 'mark'],
+    ['scale', Object.keys(plugin.scales ?? {}), 'scale'],
+    ['transform', Object.keys(plugin.transforms ?? {}), 'transform'],
+  ] as const) {
+    for (const name of names) {
+      if (!NAME_PATTERN.test(name)) {
+        throw new PluginError(`registerPlugin: invalid ${label} name "${name}"`);
+      }
+    }
+    if (kind === 'scale') {
+      for (const name of names) {
+        if (BUILTIN_SCALES.includes(name)) {
+          throw new PluginError(`registerPlugin: scale "${name}" is a built-in scale type`);
+        }
+      }
+    }
+    for (const name of names) {
+      const owner = ownerOf(kind, name);
+      if (owner) {
+        throw new PluginError(
+          `registerPlugin: ${label} "${name}" is already provided by "${owner}"`,
+        );
+      }
+    }
+  }
+  for (const [label, record] of [
+    ['mark', plugin.marks],
+    ['scale', plugin.scales],
+    ['transform', plugin.transforms],
+  ] as const) {
+    for (const [name, fn] of Object.entries(record ?? {})) {
+      if (typeof fn !== 'function') {
+        throw new PluginError(`registerPlugin: ${label} "${name}" must be a function`);
+      }
+    }
+  }
+
   const paletteNames = Object.keys(plugin.palettes ?? {});
   for (const palette of paletteNames) {
     const owner = palettes.get(palette);
@@ -140,6 +206,13 @@ export function registerPlugin(plugin: PluginDefinition): void {
   for (const [theme, tokens] of Object.entries(plugin.themes ?? {})) {
     registerTheme(theme, tokens);
   }
+  for (const [name, fn] of Object.entries(plugin.marks ?? {}))
+    addExtension('mark', name, plugin.name, fn);
+  for (const [name, fn] of Object.entries(plugin.scales ?? {}))
+    addExtension('scale', name, plugin.name, fn);
+  for (const [name, fn] of Object.entries(plugin.transforms ?? {})) {
+    addExtension('transform', name, plugin.name, fn);
+  }
 }
 
 /**
@@ -159,6 +232,7 @@ export function unregisterPlugin(name: string): void {
   for (const theme of Object.keys(plugin.themes ?? {})) {
     unregisterTheme(theme);
   }
+  removeExtensionsOf(name);
   plugins.delete(name);
 }
 
@@ -189,6 +263,62 @@ export function renderChart(
   chart.render(svg, data, options);
 }
 
+/** Names of the marks provided by plugins (API 1.1). */
+export function listMarks(): string[] {
+  return listMarkNames();
+}
+
+/** Names of the scale types provided by plugins (API 1.1). */
+export function listScales(): string[] {
+  return listScaleNames();
+}
+
+/** Names of the transforms provided by plugins (API 1.1). */
+export function listTransforms(): string[] {
+  return listTransformNames();
+}
+
+/** Build a mark provided by a plugin. Throws `PluginError` for an unknown name. */
+export function createMark(name: string, rows: readonly unknown[], options: unknown): Mark {
+  const factory = getMarkFactory(name);
+  if (!factory) throw new PluginError(`createMark: no mark named "${name}"`);
+  return factory(rows, options);
+}
+
+/** Apply a transform provided by a plugin. Throws `PluginError` for an unknown name. */
+export function applyTransform(
+  name: string,
+  rows: readonly unknown[],
+  options: unknown,
+): unknown[] {
+  const fn = getTransformFn(name);
+  if (!fn) throw new PluginError(`applyTransform: no transform named "${name}"`);
+  return fn(rows, options);
+}
+
+/** A scale factory provided by a plugin, or `undefined`. */
+export function getScale(name: string): ScaleFactory | undefined {
+  return getScaleFactory(name);
+}
+
+/** Wrap a mark factory with its row and option types. Helps plugin authors. */
+// The generic types document the plugin's row and option shapes for its authors;
+// they are not inferred from the return type, so the lint rule is disabled here.
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+export function defineMark<TRow, TOptions>(
+  factory: (rows: readonly TRow[], options: TOptions) => Mark,
+): MarkFactory {
+  return (rows, options) => factory(rows as readonly TRow[], options as TOptions);
+}
+
+/** Wrap a transform with its row and option types. Helps plugin authors. */
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+export function defineTransform<TRow, TOptions, TOut>(
+  fn: (rows: readonly TRow[], options: TOptions) => TOut[],
+): TransformFn {
+  return (rows, options) => fn(rows as readonly TRow[], options as TOptions);
+}
+
 /** A palette by name, or `undefined`. */
 export function getPalette(name: string): readonly string[] | undefined {
   return palettes.get(name)?.colors;
@@ -206,4 +336,5 @@ export function defineChart<TData, TOptions>(
 }
 
 export type { ThemeTokens } from '../theme/index.js';
+export type { MarkFactory, ScaleFactory, TransformFn } from './extensions.js';
 export { loadPlugins, type LoadPluginsOptions, type PluginLoadResult } from './loader.js';

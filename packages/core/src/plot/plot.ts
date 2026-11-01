@@ -9,7 +9,7 @@ import { renderCategoricalLegend, type LegendItem } from '../legends/index.js';
 import { cssVar, LIGHT_THEME } from '../theme/index.js';
 import { createColorScale } from './color.js';
 import { gridX, gridY } from './grid.js';
-import { createPlotScale, inferKind, tickValues } from './scales.js';
+import { createAxisScale, inferKind, tickValues } from './scales.js';
 import type { AxisSpec, Mark, PlotContext, PlotMargin, PlotSpec, Primitive } from './types.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -44,8 +44,8 @@ export function plot(svg: SVGSVGElement, spec: PlotSpec): PlotContext {
   const yValues = collect(spec.marks, 'yValues');
   const xKind = xSpec.type ?? inferKind(xValues.length > 0 ? xValues : (xSpec.domain ?? []));
   const yKind = ySpec.type ?? inferKind(yValues);
-  const x = createPlotScale(xKind, xValues, [0, innerWidth], xSpec);
-  const y = createPlotScale(yKind, yValues, [innerHeight, 0], ySpec);
+  const x = createAxisScale(xKind, xValues, [0, innerWidth], xSpec);
+  const y = createAxisScale(yKind, yValues, [innerHeight, 0], ySpec);
   const outOfDomain = { x: countOutside(xValues, xSpec), y: countOutside(yValues, ySpec) };
 
   svg.replaceChildren();
