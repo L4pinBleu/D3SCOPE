@@ -2,39 +2,45 @@
  * Bar marks. `rectY` draws vertical bars (category or linear x, numeric y);
  * `rectX` is the horizontal equivalent. A bar spans the band of its category,
  * or is centred on its value on a linear axis, and goes from the baseline
- * (value 0) to the value.
+ * (value 0) to the value. Rows with a missing position or value are not drawn
+ * and do not take part in the domain.
  */
-import type { Mark, PlotContext, Primitive } from '../types.js';
 import { cssVar, LIGHT_THEME } from '../../theme/index.js';
+import type { Mark, PlotContext, Primitive } from '../types.js';
+import {
+  accessor,
+  fillMode,
+  isPlottable,
+  toNumber,
+  type Accessor,
+  type FillMode,
+} from './shared.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
-
-/** Read one value from a row: by field name or by accessor. */
-type Field<T, V> = keyof T | ((row: T) => V);
-
-function read<T, V>(row: T, field: Field<T, V>): V {
-  return typeof field === 'function' ? field(row) : (row[field] as V);
-}
 
 /** A value a bar sits on: a category (string) or a number. */
 type Slot = string | number;
 
 export interface RectOptions<T> {
-  /** Category or number for the position axis. */
-  x?: Field<T, Slot>;
-  /** Numeric value the bar reaches. */
-  y?: Field<T, number>;
-  /** Field of a category (coloured by `ctx.color`) or a literal CSS colour. */
+  /** Category or number for the position axis: a field name or a function. */
+  x?: Accessor<T, Slot>;
+  /** Numeric value the bar reaches: a field name or a function. */
+  y?: Accessor<T, number | null | undefined>;
+  /**
+   * Fill. A string that is a key of the rows is a category read through the
+   * colour scale; any other string is a literal CSS colour; a function returns
+   * the colour of each row. Default: the theme accent.
+   */
   fill?: string | ((row: T) => string);
   /** Opacity of the bars. Default: 1. */
   opacity?: number;
-  /** Bar width in pixels, on a linear x axis only. Default: 80% of one row's share. */
+  /** Bar width in pixels, on a linear axis only. Default: 80% of one row's share. */
   barWidth?: number;
 }
 
 /**
- * Build the bar mark. `main` is the axis that carries the categories/numbers,
- * `value` the axis the bars extend along.
+ * Build the bar mark. `orientation` says which axis carries the categories
+ * (`y` for rectY: x is the category axis; `x` for rectX: y is).
  */
 function barMark<T>(rows: readonly T[], options: RectOptions<T>, orientation: 'x' | 'y'): Mark {
   const name = orientation === 'y' ? 'rectY' : 'rectX';
@@ -43,22 +49,38 @@ function barMark<T>(rows: readonly T[], options: RectOptions<T>, orientation: 'x
   if (mainField === undefined || valueField === undefined) {
     throw new TypeError(`${name}: x and y are required`);
   }
-  const main = (row: T): Slot => read(row, mainField as Field<T, Slot>);
-  const value = (row: T): number => read(row, valueField as Field<T, number>);
+  const main = accessor(mainField as Accessor<T, Slot>);
+  const value = accessor(valueField as Accessor<T, number | null | undefined>);
+  const fill: FillMode<T> = fillMode(options.fill, rows);
+
+  // Only plottable, finite values reach the domain: a single missing value
+  // must not make the whole axis unreadable.
+  const mainValues = (): Primitive[] => rows.map(main).filter((s): s is Slot => isPlottable(s));
+  const valueValues = (): number[] => {
+    const out: number[] = [];
+    for (const row of rows) {
+      const v = toNumber(value(row));
+      if (v !== null) out.push(v);
+    }
+    return out;
+  };
 
   return {
     name,
     xValues(): readonly Primitive[] {
-      return orientation === 'y' ? rows.map(main) : [...rows.map(value), 0];
+      return orientation === 'y' ? mainValues() : [...valueValues(), 0];
     },
     yValues(): readonly Primitive[] {
-      return orientation === 'y' ? [...rows.map(value), 0] : rows.map(main);
+      return orientation === 'y' ? [...valueValues(), 0] : mainValues();
     },
     colorValues(): readonly string[] {
-      // A colour only comes from the plot when `fill` names a category field.
-      if (typeof options.fill !== 'string' || options.fill === '') return [];
-      if (!isField(options.fill, rows[0])) return [];
-      return rows.map((row) => read(row, options.fill as Field<T, string>));
+      if (fill.kind !== 'category') return [];
+      const out: string[] = [];
+      for (const row of rows) {
+        const c = row[fill.field];
+        if (typeof c === 'string' && c !== '') out.push(c);
+      }
+      return out;
     },
     render(ctx: PlotContext): void {
       const layer = ctx.layer('rect');
@@ -70,19 +92,10 @@ function barMark<T>(rows: readonly T[], options: RectOptions<T>, orientation: 'x
         ((orientation === 'y' ? ctx.innerWidth : ctx.innerHeight) / Math.max(rows.length, 1)) * 0.8,
       );
       const width = band > 0 ? band : (options.barWidth ?? defaultWidth);
-      const accent = cssVar('accent', LIGHT_THEME.accent);
       for (const row of rows) {
-        const v = value(row);
+        const v = toNumber(value(row));
         const slot = main(row);
-        if (!isValid(slot) || !Number.isFinite(v)) continue;
-        const fill =
-          typeof options.fill === 'function'
-            ? options.fill(row)
-            : typeof options.fill === 'string'
-              ? isField(options.fill, rows[0])
-                ? ctx.color(read(row, options.fill as Field<T, string>))
-                : options.fill
-              : accent;
+        if (!isPlottable(slot) || v === null) continue;
         const start =
           band > 0 ? mainScale.position(String(slot)) : mainScale.position(slot) - width / 2;
         const p0 = valueScale.position(0);
@@ -101,7 +114,7 @@ function barMark<T>(rows: readonly T[], options: RectOptions<T>, orientation: 'x
           rect.setAttribute('width', String(length));
           rect.setAttribute('height', String(width));
         }
-        rect.setAttribute('fill', fill);
+        rect.setAttribute('fill', fillFor(row, fill, ctx));
         rect.setAttribute('opacity', String(options.opacity ?? 1));
         rect.setAttribute('class', 'd3s-bar');
         layer.appendChild(rect);
@@ -110,14 +123,22 @@ function barMark<T>(rows: readonly T[], options: RectOptions<T>, orientation: 'x
   };
 }
 
-function isValid(slot: unknown): boolean {
-  if (slot === undefined || slot === null) return false;
-  if (typeof slot === 'number') return Number.isFinite(slot);
-  return slot !== '';
-}
-
-function isField(key: string, row: unknown): boolean {
-  return typeof row === 'object' && row !== null && key in row;
+/** The fill of one bar. A category that is missing falls back to the theme accent. */
+function fillFor<T>(row: T, fill: FillMode<T>, ctx: PlotContext): string {
+  switch (fill.kind) {
+    case 'category': {
+      const c = row[fill.field];
+      return typeof c === 'string' && c !== ''
+        ? ctx.color(c)
+        : cssVar('accent', LIGHT_THEME.accent);
+    }
+    case 'literal':
+      return fill.colour;
+    case 'function':
+      return fill.compute(row);
+    case 'default':
+      return cssVar('accent', LIGHT_THEME.accent);
+  }
 }
 
 /** Vertical bars: categories or numbers on x, numeric values on y. */

@@ -4,6 +4,7 @@
  */
 import type { Mark, PlotContext, Primitive } from '../types.js';
 import { cssVar, LIGHT_THEME } from '../../theme/index.js';
+import { isPlottable, xPosition } from './shared.js';
 
 export interface RuleOptions {
   /** Line colour. Default: the theme accent. */
@@ -51,17 +52,11 @@ function drawRule(
   }
 }
 
-/** Pixel position of an x value: the band centre on a band scale. */
-function xPosition(ctx: PlotContext, v: Primitive): number {
-  const p = ctx.x.position(v);
-  return ctx.x.bandwidth() > 0 ? p + ctx.x.bandwidth() / 2 : p;
-}
-
-/** Horizontal reference lines at each y value. */
+/** Horizontal reference lines at each y value. Non-finite values are not drawn. */
 export function ruleY(values: readonly number[], options: RuleOptions = {}): Mark {
   return {
     name: 'rule-y',
-    yValues: () => values,
+    yValues: () => values.filter((v) => Number.isFinite(v)),
     render(ctx: PlotContext): void {
       drawRule(ctx, 'rule', values, 'horizontal', options);
     },
@@ -75,7 +70,7 @@ export function ruleX(
 ): Mark {
   return {
     name: 'rule-x',
-    xValues: () => values,
+    xValues: () => values.filter((v) => isPlottable(v)),
     render(ctx: PlotContext): void {
       drawRule(ctx, 'rule', values, 'vertical', options);
     },

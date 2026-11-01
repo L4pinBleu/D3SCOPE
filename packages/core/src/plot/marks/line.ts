@@ -1,13 +1,13 @@
 /**
  * `line(rows, options)`: a line mark. One `<path>` per series, drawn from the
  * rows, sorted by x within each series. Series values double as colour
- * categories, so the plot's colour scale assigns each series its colour.
+ * categories, so the plot's colour scale assigns each series its colour. Rows
+ * with a missing x or y are not drawn; rows with a missing series value are
+ * drawn as one extra line in the theme accent.
  */
 import { cssVar, LIGHT_THEME } from '../../theme/index.js';
 import type { Mark, PlotContext, Primitive } from '../types.js';
-
-/** An accessor: a field name of the row object, or a function. */
-export type Accessor<T, V> = keyof T | ((row: T) => V);
+import { accessor, isPlottable, toMillis, toNumber, xPosition, type Accessor } from './shared.js';
 
 export interface LineOptions<T> {
   /** X accessor: a field name or a function. A Date, number or category string. */
@@ -29,23 +29,25 @@ export function line<T>(rows: readonly T[], options: LineOptions<T>): Mark {
   const getY = accessor(options.y);
   const getSeries = options.series === undefined ? undefined : accessor(options.series);
 
-  // Group rows by series, keeping the order of first appearance.
-  const groups = new Map<string, { x: Primitive; y: number }[]>();
+  // Group rows by series, keeping the order of first appearance. A row with no
+  // series value goes to its own group, drawn in the accent colour.
+  const groups = new Map<string | undefined, { x: Primitive; y: number }[]>();
   const xValues: Primitive[] = [];
   const yValues: number[] = [];
   const categories: string[] = [];
   for (const row of rows) {
     const x = getX(row);
     const y = toNumber(getY(row));
-    if (x === null || x === undefined || y === null) continue;
+    if (!isPlottable(x) || y === null) continue;
     xValues.push(x);
     yValues.push(y);
-    const category = getSeries === undefined ? undefined : (getSeries(row) ?? undefined);
+    const raw = getSeries === undefined ? undefined : getSeries(row);
+    const category = typeof raw === 'string' && raw !== '' ? raw : undefined;
     if (category !== undefined) categories.push(category);
-    let points = groups.get(category ?? '');
+    let points = groups.get(category);
     if (points === undefined) {
       points = [];
-      groups.set(category ?? '', points);
+      groups.set(category, points);
     }
     points.push({ x, y });
   }
@@ -65,7 +67,7 @@ export function line<T>(rows: readonly T[], options: LineOptions<T>): Mark {
         path.setAttribute('stroke-width', String(width));
         if (options.stroke !== undefined) {
           path.setAttribute('stroke', options.stroke);
-        } else if (getSeries !== undefined) {
+        } else if (category !== undefined) {
           path.setAttribute('stroke', ctx.color(category));
         } else {
           path.setAttribute('stroke', cssVar('accent', LIGHT_THEME.accent));
@@ -90,33 +92,4 @@ export function pathD(points: readonly { x: Primitive; y: number }[], ctx: PlotC
     first = false;
   }
   return d;
-}
-
-/** Pixel x of a value: band centre for band scales, else the plain position. */
-export function xPosition(ctx: PlotContext, value: Primitive): number {
-  const p = ctx.x.position(value);
-  const bandwidth = ctx.x.bandwidth();
-  return bandwidth > 0 ? p + bandwidth / 2 : p;
-}
-
-/**
- * Resolve an accessor: a field name of the row, or the function itself. The
- * row field may be missing at runtime, so the result can be null/undefined.
- */
-export function accessor<T, V>(key: Accessor<T, V>): (row: T) => V | null | undefined {
-  return typeof key === 'function' ? (row) => key(row) : (row) => row[key] as V | null | undefined;
-}
-
-/** Coerce a value to a finite number, or `null` when missing or NaN. */
-export function toNumber(value: unknown): number | null {
-  if (value === null || value === undefined) return null;
-  if (value instanceof Date) return value.getTime();
-  const n = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(n) ? n : null;
-}
-
-/** Coerce a Primitive to a number for ordering (Date → ms, string → NaN). */
-export function toMillis(value: Primitive): number {
-  if (value instanceof Date) return value.getTime();
-  return typeof value === 'number' ? value : Number(value);
 }
