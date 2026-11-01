@@ -26,8 +26,11 @@ export interface GridStyle {
 
 /** Options of one axis. Every field is optional; the defaults are in `plot()`. */
 export interface AxisSpec {
-  /** Scale type. Default: inferred from the values (number → linear, Date → time, text → band). */
-  type?: ScaleKind;
+  /**
+   * Scale type. Default: inferred from the values (number → linear, Date → time, text → band).
+   * A name registered by a plugin's `scales` (Plugin API 1.1) is also accepted.
+   */
+  type?: ScaleKind | (string & {});
   /** Lower bound of the domain. Turns off `nice` on this axis. */
   min?: number | Date;
   /** Upper bound of the domain. Turns off `nice` on this axis. */

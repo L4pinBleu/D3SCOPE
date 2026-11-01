@@ -103,3 +103,53 @@ Ils sont dans `plugins/` et sont publiés avec le core, sous `AGPL-3.0-or-later`
   bouton retour). Graphique `treemap`.
 - `@d3scope/plugin-brush` : sélection de plage temporelle, partageable avec
   d'autres graphiques via `createTimeRangeLink()`. Graphique `brush`.
+
+## Points d'extension (API 1.1)
+
+Un plugin peut aussi fournir des **marks**, des **échelles** et des
+**transformations** du modèle composable (`plot()`). Ils s'enregistrent comme
+les graphiques, dans le même `definePlugin`, avec `apiVersion: '^1.0.0'` ou
+plus récent (les plugins écrits pour 1.0 restent compatibles).
+
+```ts
+import { definePlugin, defineMark, defineTransform } from '@d3scope/core/plugin';
+import { plot } from '@d3scope/core/plot';
+
+export default definePlugin({
+  name: 'd3scope-plugin-candles',
+  version: '0.1.0',
+  apiVersion: '^1.1.0',
+  marks: {
+    // Une mark : elle reçoit des lignes et des options, et renvoie un Mark.
+    candles: defineMark<{ day: number; low: number; high: number }, unknown>((rows) => ({
+      name: 'candles',
+      xValues: () => rows.map((r) => r.day),
+      yValues: () => rows.flatMap((r) => [r.low, r.high]),
+      render(ctx) {
+        // Dessiner dans une couche : ctx.layer('candles') ...
+      },
+    })),
+  },
+  transforms: {
+    // Une transformation pure : lignes et options en entrée, lignes en sortie.
+    moving: defineTransform<{ v: number }, { window?: number }, { v: number }>(
+      (rows, { window = 3 }) => rows.map((r) => ({ v: r.v / window })),
+    ),
+  },
+  scales: {
+    // Une échelle : `d3` doit être une échelle d3 (les axes sont dessinés avec d3-axis).
+    // Son nom peut ensuite servir de type d'axe : { x: { type: 'log-custom' } }.
+  },
+});
+```
+
+Règles :
+
+- Les noms sont globaux : deux plugins ne peuvent pas fournir la même mark,
+  échelle ou transformation.
+- Les types d'échelle intégrés (`linear`, `log`, `time`, `band`) sont réservés.
+- L'enregistrement est atomique : si une mark est refusée, rien n'est
+  enregistré, pas même les autres extensions du plugin.
+- `unregisterPlugin(name)` retire ses marks, échelles et transformations.
+- Accès : `createMark(name, rows, options)`, `applyTransform(name, rows, options)`,
+  `listMarks()`, `listScales()`, `listTransforms()`.

@@ -4,6 +4,19 @@ All notable changes to `@d3scope/core` are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow
 [semver](https://semver.org/) for the public API.
 
+## [Unreleased]
+
+### Added
+
+- Plugin API 1.1.0: plugins can provide marks, scales and transforms
+  (`marks`, `scales`, `transforms` in `definePlugin`). Plugins written for 1.0
+  still register. Helpers: `defineMark`, `defineTransform`, `createMark`,
+  `applyTransform`, `listMarks`, `listScales`, `listTransforms`.
+- Composable plot model (`@d3scope/core/plot`): marks for bars (stacked,
+  grouped, normalised), lines, areas (stacked), dots (with bubble sizes),
+  rules, text, histograms, heatmaps; box plot; radar and polar area charts
+  (in progress: see the PRs).
+
 ## [0.1.0] - 2026-11-01
 
 First release. Charts, export, theming, plugins, a custom element and the

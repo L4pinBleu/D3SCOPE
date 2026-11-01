@@ -10,6 +10,7 @@ import {
   type ContinuousScaleOptions,
 } from '../scales/index.js';
 import type { AxisSpec, Primitive, PlotScale, ScaleKind } from './types.js';
+import { BUILTIN_SCALES, getScaleFactory } from '../plugin/extensions.js';
 
 /** Upper bound on generated ticks, so a tiny `step` cannot freeze the page. */
 const MAX_TICKS = 1000;
@@ -94,6 +95,25 @@ export function tickValues(scale: PlotScale, spec: AxisSpec): Primitive[] {
 function continuousOptions(spec: AxisSpec): ContinuousScaleOptions {
   const fixed = spec.min !== undefined || spec.max !== undefined;
   return { nice: spec.nice ?? !fixed, clamp: false };
+}
+
+/**
+ * Build the scale for an axis whose `type` is a built-in kind or the name of a
+ * scale a plugin registered (Plugin API 1.1). Throws `RangeError` for a name
+ * that is neither.
+ */
+export function createAxisScale(
+  kind: string,
+  values: readonly Primitive[],
+  range: readonly [number, number],
+  spec: AxisSpec,
+): PlotScale {
+  if (BUILTIN_SCALES.includes(kind)) {
+    return createPlotScale(kind as ScaleKind, values, range, spec);
+  }
+  const factory = getScaleFactory(kind);
+  if (!factory) throw new RangeError(`plot: unknown scale type "${kind}"`);
+  return factory(values, range, spec);
 }
 
 /**
