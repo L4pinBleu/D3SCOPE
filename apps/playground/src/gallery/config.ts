@@ -5,8 +5,32 @@
  * the spec) and returns a PlotSpec. Unit-tested in `tests/gallery.test.ts`.
  */
 import type { AxisPosition, AxisSpec, ColorSpec, Mark, PlotSpec, ScaleKind } from '@d3scope/core';
-import { dot, line, rectX, rectY, ruleX, ruleY, text } from '@d3scope/core';
-import { MONTHLY, SCATTER, TIME_SERIES, type MonthlyRow } from './data.js';
+import {
+  area,
+  cell,
+  dot,
+  histogram,
+  line,
+  rectX,
+  rectY,
+  ruleX,
+  ruleY,
+  stackedArea,
+  text,
+} from '@d3scope/core';
+import {
+  CITIES,
+  DELIVERY_TIMES,
+  ENERGY,
+  HEAT,
+  MONTHLY,
+  SCATTER,
+  TIME_SERIES,
+  type CityRow,
+  type EnergyRow,
+  type HeatRow,
+  type MonthlyRow,
+} from './data.js';
 
 /** Width and height of every gallery chart. */
 export const GALLERY_SIZE = { width: 560, height: 340 } as const;
@@ -475,6 +499,308 @@ export function legendSpec(c: LegendControls): PlotSpec {
     ...(Object.keys(color).length > 0 ? { color } : {}),
     x: axisSpec(DEFAULT_BAR.x, 'x'),
     y: axisSpec(DEFAULT_BAR.y, 'y'),
+    marks,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Page 8: stacked bars (rectY with `stack`).
+// ---------------------------------------------------------------------------
+
+export interface StackedBarControls {
+  /** Stack the two series of each month. Off: plain bars filled by series. */
+  stack: boolean;
+  /** Normalise every month to 100 % (only meaningful when stacked). */
+  normalize: boolean;
+  /** Show the colour legend. */
+  legend: boolean;
+  /** Series colours, comma-separated, used in order. */
+  range: string;
+  /** Bar opacity, as text in [0, 1]. */
+  opacity: string;
+  x: AxisControls;
+  y: AxisControls;
+}
+
+export const DEFAULT_STACKED_BAR: StackedBarControls = {
+  stack: true,
+  normalize: false,
+  legend: true,
+  range: '',
+  opacity: '0.9',
+  x: { ...DEFAULT_AXIS },
+  y: { ...DEFAULT_AXIS },
+};
+
+/** Stacked (or plain) vertical bars over the two energy series. */
+export function stackedBarSpec(c: StackedBarControls): PlotSpec {
+  const opacity = parseOpacity(c.opacity, 'opacity');
+  const color: ColorSpec = {};
+  if (c.legend) color.legend = true;
+  if (c.range.trim() !== '') color.range = parseList(c.range, 'color.range');
+  const marks: Mark[] = [
+    rectY<EnergyRow>(ENERGY, {
+      x: 'month',
+      y: 'value',
+      ...(c.stack
+        ? {
+            stack: { series: 'series' as const },
+            ...(c.normalize ? { normalize: true } : {}),
+          }
+        : { fill: 'series' as const }),
+      ...(opacity !== undefined ? { opacity } : {}),
+    }),
+  ];
+  return {
+    ...GALLERY_SIZE,
+    ...(Object.keys(color).length > 0 ? { color } : {}),
+    x: axisSpec(c.x, 'x'),
+    y: axisSpec(c.y, 'y'),
+    marks,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Page 9: grouped bars (rectY/rectX with `group`).
+// ---------------------------------------------------------------------------
+
+export interface GroupedBarControls {
+  /** Group the two series side by side. Off: plain bars filled by series. */
+  group: boolean;
+  /** Horizontal variant (rectX) instead of vertical (rectY). */
+  horizontal: boolean;
+  /** Show the colour legend. */
+  legend: boolean;
+  /** Bar opacity, as text in [0, 1]. */
+  opacity: string;
+  x: AxisControls;
+  y: AxisControls;
+}
+
+export const DEFAULT_GROUPED_BAR: GroupedBarControls = {
+  group: true,
+  horizontal: false,
+  legend: true,
+  opacity: '0.9',
+  x: { ...DEFAULT_AXIS },
+  y: { ...DEFAULT_AXIS },
+};
+
+/** Grouped (or plain) bars, vertical or horizontal. */
+export function groupedBarSpec(c: GroupedBarControls): PlotSpec {
+  const opacity = parseOpacity(c.opacity, 'opacity');
+  const color: ColorSpec = {};
+  if (c.legend) color.legend = true;
+  const common = {
+    ...(c.group ? { group: { series: 'series' as const } } : { fill: 'series' as const }),
+    ...(opacity !== undefined ? { opacity } : {}),
+  };
+  const marks: Mark[] = [
+    c.horizontal
+      ? rectX<EnergyRow>(ENERGY, { x: 'value', y: 'month', ...common })
+      : rectY<EnergyRow>(ENERGY, { x: 'month', y: 'value', ...common }),
+  ];
+  return {
+    ...GALLERY_SIZE,
+    ...(Object.keys(color).length > 0 ? { color } : {}),
+    x: axisSpec(c.x, 'x'),
+    y: axisSpec(c.y, 'y'),
+    marks,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Page 10: areas (area, and stackedArea for the stacked mode).
+// ---------------------------------------------------------------------------
+
+export interface AreaControls {
+  /** `aires`: one area per series; `empilée`: the series stacked. */
+  mode: string;
+  /** Field to group the rows into series, or `none` (plain mode only). */
+  series: string;
+  /** Normalise the stacked mode to 100 %. */
+  normalize: boolean;
+  /** Area opacity, as text in [0, 1]. */
+  opacity: string;
+  x: AxisControls;
+  y: AxisControls;
+}
+
+export const DEFAULT_AREA: AreaControls = {
+  mode: 'aires',
+  series: 'series',
+  normalize: false,
+  opacity: '0.6',
+  x: { ...DEFAULT_AXIS },
+  y: { ...DEFAULT_AXIS },
+};
+
+/** One area per series over the 30-day series, or a stacked area chart. */
+export function areaSpec(c: AreaControls): PlotSpec {
+  const opacity = parseOpacity(c.opacity, 'opacity');
+  const withOpacity = opacity !== undefined ? { opacity } : {};
+  const marks: Mark[] = [
+    c.mode === 'empilée'
+      ? stackedArea<EnergyRow>(ENERGY, {
+          x: 'month',
+          y: 'value',
+          series: 'series',
+          ...(c.normalize ? { normalize: true } : {}),
+          ...withOpacity,
+        })
+      : area<(typeof TIME_SERIES)[number]>(TIME_SERIES, {
+          x: 'date',
+          y: 'value',
+          ...(c.series === 'none' ? {} : { series: 'series' as const }),
+          ...withOpacity,
+        }),
+  ];
+  return {
+    ...GALLERY_SIZE,
+    x: axisSpec(c.x, 'x'),
+    y: axisSpec(c.y, 'y'),
+    marks,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Page 11: histogram (histogram over a numeric dataset).
+// ---------------------------------------------------------------------------
+
+export interface HistogramControls {
+  /** Approximate number of bins, as text. Default: Sturges. */
+  count: string;
+  /** Literal fill colour, as text. Default: the theme accent. */
+  fill: string;
+  /** Bar opacity, as text in [0, 1]. */
+  opacity: string;
+  x: AxisControls;
+  y: AxisControls;
+}
+
+export const DEFAULT_HISTOGRAM: HistogramControls = {
+  count: '',
+  fill: '',
+  opacity: '0.9',
+  x: { ...DEFAULT_AXIS },
+  y: { ...DEFAULT_AXIS },
+};
+
+/** Histogram of the delivery times. */
+export function histogramSpec(c: HistogramControls): PlotSpec {
+  const count = parseNumber(c.count, 'count');
+  if (count !== undefined && (count <= 0 || !Number.isInteger(count))) {
+    throw new Error('count : doit être un entier positif');
+  }
+  const fill = c.fill.trim();
+  const opacity = parseOpacity(c.opacity, 'opacity');
+  const marks: Mark[] = [
+    histogram(DELIVERY_TIMES, {
+      ...(count !== undefined ? { count: Math.round(count) } : {}),
+      ...(fill !== '' ? { fill } : {}),
+      ...(opacity !== undefined ? { opacity } : {}),
+    }),
+  ];
+  return {
+    ...GALLERY_SIZE,
+    x: axisSpec(c.x, 'x'),
+    y: axisSpec(c.y, 'y'),
+    marks,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Page 12: bubbles (dot with `size` and `sizeRange`).
+// ---------------------------------------------------------------------------
+
+export interface BubbleControls {
+  /** Radius of the smallest bubble, as text. */
+  sizeMin: string;
+  /** Radius of the largest bubble, as text. */
+  sizeMax: string;
+  /** Fill by the city's region instead of the theme accent. */
+  fillByCategory: boolean;
+  /** Opacity, as text in [0, 1]. */
+  opacity: string;
+  x: AxisControls;
+  y: AxisControls;
+}
+
+export const DEFAULT_BUBBLE: BubbleControls = {
+  sizeMin: '4',
+  sizeMax: '24',
+  fillByCategory: true,
+  opacity: '0.7',
+  x: { ...DEFAULT_AXIS },
+  y: { ...DEFAULT_AXIS },
+};
+
+/** Bubble chart: population × GDP, the bubble area encodes the population. */
+export function bubbleSpec(c: BubbleControls): PlotSpec {
+  const sizeMin = parseNumber(c.sizeMin, 'sizeRange.min');
+  if (sizeMin !== undefined && sizeMin <= 0) {
+    throw new Error('sizeRange.min : doit être positif');
+  }
+  const sizeMax = parseNumber(c.sizeMax, 'sizeRange.max');
+  if (sizeMax !== undefined && sizeMax <= 0) {
+    throw new Error('sizeRange.max : doit être positif');
+  }
+  if (sizeMin !== undefined && sizeMax !== undefined && sizeMin > sizeMax) {
+    throw new Error('sizeRange : min doit être ≤ max');
+  }
+  const sizeRange: [number, number] | undefined =
+    sizeMin !== undefined || sizeMax !== undefined ? [sizeMin ?? 3, sizeMax ?? 20] : undefined;
+  const opacity = parseOpacity(c.opacity, 'opacity');
+  const marks: Mark[] = [
+    dot<CityRow>(CITIES, {
+      x: 'population',
+      y: 'gdp',
+      size: 'population',
+      ...(sizeRange !== undefined ? { sizeRange } : {}),
+      ...(c.fillByCategory ? { fill: 'region' as const } : {}),
+      ...(opacity !== undefined ? { opacity } : {}),
+    }),
+  ];
+  return {
+    ...GALLERY_SIZE,
+    x: axisSpec(c.x, 'x'),
+    y: axisSpec(c.y, 'y'),
+    marks,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Page 13: heatmap (cell over a day × hour grid).
+// ---------------------------------------------------------------------------
+
+export interface CellControls {
+  /** Cell opacity, as text in [0, 1]. */
+  opacity: string;
+  x: AxisControls;
+  y: AxisControls;
+}
+
+export const DEFAULT_CELL: CellControls = {
+  opacity: '0.9',
+  x: { ...DEFAULT_AXIS },
+  y: { ...DEFAULT_AXIS },
+};
+
+/** Heatmap of the week's temperatures: hours on x, days on y. */
+export function cellSpec(c: CellControls): PlotSpec {
+  const opacity = parseOpacity(c.opacity, 'opacity');
+  const marks: Mark[] = [
+    cell<HeatRow>(HEAT, {
+      x: 'hour',
+      y: 'day',
+      fill: 'temp',
+      ...(opacity !== undefined ? { opacity } : {}),
+    }),
+  ];
+  return {
+    ...GALLERY_SIZE,
+    x: axisSpec(c.x, 'x'),
+    y: axisSpec(c.y, 'y'),
     marks,
   };
 }

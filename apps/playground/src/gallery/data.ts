@@ -66,3 +66,93 @@ export const SCATTER: readonly ScatterRow[] = [
   { x: 74, y: 47, group: 'gamma' },
   { x: 82, y: 55, group: 'gamma' },
 ];
+
+// ---------------------------------------------------------------------------
+// Fixtures for the new chart pages: stacked/grouped bars, areas, histogram,
+// bubbles and the heatmap. The existing fixtures above are left untouched.
+// ---------------------------------------------------------------------------
+
+/** One month, one energy consumption value, in one of two regions. */
+export interface EnergyRow {
+  month: string;
+  value: number;
+  series: 'Nord' | 'Sud';
+}
+
+/** Twelve months × two regions: two rows per month, ready to stack or group. */
+export const ENERGY: readonly EnergyRow[] = [
+  { month: 'Jan', value: 210, series: 'Nord' },
+  { month: 'Jan', value: 165, series: 'Sud' },
+  { month: 'Fév', value: 190, series: 'Nord' },
+  { month: 'Fév', value: 150, series: 'Sud' },
+  { month: 'Mar', value: 172, series: 'Nord' },
+  { month: 'Mar', value: 138, series: 'Sud' },
+  { month: 'Avr', value: 140, series: 'Nord' },
+  { month: 'Avr', value: 128, series: 'Sud' },
+  { month: 'Mai', value: 118, series: 'Nord' },
+  { month: 'Mai', value: 121, series: 'Sud' },
+  { month: 'Juin', value: 96, series: 'Nord' },
+  { month: 'Juin', value: 132, series: 'Sud' },
+  { month: 'Juil', value: 88, series: 'Nord' },
+  { month: 'Juil', value: 148, series: 'Sud' },
+  { month: 'Août', value: 92, series: 'Nord' },
+  { month: 'Août', value: 155, series: 'Sud' },
+  { month: 'Sep', value: 124, series: 'Nord' },
+  { month: 'Sep', value: 133, series: 'Sud' },
+  { month: 'Oct', value: 166, series: 'Nord' },
+  { month: 'Oct', value: 141, series: 'Sud' },
+  { month: 'Nov', value: 198, series: 'Nord' },
+  { month: 'Nov', value: 158, series: 'Sud' },
+  { month: 'Déc', value: 224, series: 'Nord' },
+  { month: 'Déc', value: 172, series: 'Sud' },
+];
+
+/** One daily delivery time, in minutes, over a quarter. */
+export const DELIVERY_TIMES: readonly number[] = [
+  21, 34, 28, 41, 19, 33, 27, 38, 22, 31, 26, 45, 24, 30, 29, 36, 20, 32, 25, 43, 23, 35, 28, 39,
+  26, 31, 22, 37, 33, 24, 29, 42, 27, 30, 21, 36, 32, 25, 40, 28, 34, 23, 31, 26, 38, 29, 24, 35,
+  27, 33, 22, 44, 30, 26, 39, 25, 32, 28, 41, 20, 37, 31, 24, 45, 29, 34, 23, 36, 27, 32, 21, 43,
+  30, 26, 38, 25, 33, 22, 40, 28,
+];
+
+/** One city: population (millions), GDP per capita (k$), one of three regions. */
+export interface CityRow {
+  name: string;
+  population: number;
+  gdp: number;
+  region: 'Centre' | 'Est' | 'Ouest';
+}
+
+/** Twelve cities, enough for three distinct regional clusters. */
+export const CITIES: readonly CityRow[] = [
+  { name: 'Aurelia', population: 1.2, gdp: 38, region: 'Centre' },
+  { name: 'Belmont', population: 2.4, gdp: 52, region: 'Centre' },
+  { name: 'Casterly', population: 0.9, gdp: 31, region: 'Centre' },
+  { name: 'Dorne', population: 3.1, gdp: 61, region: 'Centre' },
+  { name: 'Eyrie', population: 1.8, gdp: 24, region: 'Est' },
+  { name: 'Freyvale', population: 2.6, gdp: 29, region: 'Est' },
+  { name: 'Gulltown', population: 1.1, gdp: 21, region: 'Est' },
+  { name: 'Harrenhal', population: 1.5, gdp: 33, region: 'Est' },
+  { name: 'Ironport', population: 2.9, gdp: 44, region: 'Ouest' },
+  { name: 'Lannisport', population: 0.8, gdp: 27, region: 'Ouest' },
+  { name: 'Merroway', population: 1.6, gdp: 36, region: 'Ouest' },
+  { name: 'Nightsong', population: 0.7, gdp: 19, region: 'Ouest' },
+];
+
+/** One hour of one day: the temperature, in °C. */
+export interface HeatRow {
+  day: string;
+  hour: string;
+  temp: number;
+}
+
+/** Seven days × six hours: a week of temperatures, ready for `cell`. */
+const HEAT_DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] as const;
+const HEAT_HOURS = ['0h', '4h', '8h', '12h', '16h', '20h'] as const;
+export const HEAT: readonly HeatRow[] = HEAT_DAYS.flatMap((day, d) =>
+  HEAT_HOURS.map((hour, h) => {
+    const dayShift = Math.round(3 * Math.sin((d / 7) * Math.PI * 2));
+    const hourShift = Math.round(9 * Math.sin(((h - 2) / 6) * Math.PI * 2));
+    return { day, hour, temp: 11 + dayShift + hourShift + ((d * 3 + h) % 4) - 1.5 };
+  }),
+);

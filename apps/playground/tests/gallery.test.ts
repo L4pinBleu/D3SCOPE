@@ -2,22 +2,34 @@
 import { describe, expect, it } from 'vitest';
 import {
   axisSpec,
+  areaSpec,
   barXSpec,
   barYSpec,
+  bubbleSpec,
+  cellSpec,
   DEFAULT_AXIS,
   DEFAULT_BAR,
+  DEFAULT_BUBBLE,
+  DEFAULT_CELL,
   DEFAULT_DOT,
+  DEFAULT_GROUPED_BAR,
+  DEFAULT_HISTOGRAM,
   DEFAULT_LEGEND,
   DEFAULT_LINE,
   DEFAULT_RULE,
+  DEFAULT_STACKED_BAR,
+  DEFAULT_AREA,
   dotSpec,
   axesSpec,
+  groupedBarSpec,
+  histogramSpec,
   legendSpec,
   lineSpec,
   parseList,
   parseNumber,
   ruleSpec,
   specSummary,
+  stackedBarSpec,
   type AxisControls,
   type BarControls,
 } from '../src/gallery/config';
@@ -228,5 +240,116 @@ describe('specSummary', () => {
   it('replaces the marks by their names so the JSON stays readable', () => {
     const summary = specSummary(barYSpec(DEFAULT_BAR));
     expect(JSON.parse(JSON.stringify(summary))).toEqual(summary);
+  });
+});
+
+describe('stackedBarSpec', () => {
+  it('builds one rectY mark with the legend by default', () => {
+    const spec = stackedBarSpec(DEFAULT_STACKED_BAR);
+    expect(specSummary(spec).marks).toEqual(['rectY']);
+    expect(spec.color?.legend).toBe(true);
+  });
+
+  it('stacks by default, falls back to a plain series fill, and normalizes on demand', () => {
+    const plain = stackedBarSpec({ ...DEFAULT_STACKED_BAR, stack: false });
+    expect(specSummary(plain).marks).toEqual(['rectY']);
+    expect(plain.color?.legend).toBe(true);
+    const normalized = stackedBarSpec({ ...DEFAULT_STACKED_BAR, normalize: true });
+    expect(specSummary(normalized).marks).toEqual(['rectY']);
+  });
+
+  it('propagates the series colour range and rejects a bad colour list', () => {
+    const coloured = stackedBarSpec({ ...DEFAULT_STACKED_BAR, range: '#111, #222' });
+    expect(coloured.color?.range).toEqual(['#111', '#222']);
+    expect(() => stackedBarSpec({ ...DEFAULT_STACKED_BAR, range: '  ' })).not.toThrow();
+    expect(() => stackedBarSpec({ ...DEFAULT_STACKED_BAR, opacity: 'beaucoup' })).toThrow(
+      /opacity/,
+    );
+    expect(() => stackedBarSpec({ ...DEFAULT_STACKED_BAR, opacity: '2' })).toThrow(/entre 0 et 1/);
+  });
+});
+
+describe('groupedBarSpec', () => {
+  it('builds a vertical rectY by default and a horizontal rectX on demand', () => {
+    expect(specSummary(groupedBarSpec(DEFAULT_GROUPED_BAR)).marks).toEqual(['rectY']);
+    expect(specSummary(groupedBarSpec({ ...DEFAULT_GROUPED_BAR, horizontal: true })).marks).toEqual(
+      ['rectX'],
+    );
+  });
+
+  it('turns grouping off into a plain series fill and rejects a bad opacity', () => {
+    expect(specSummary(groupedBarSpec({ ...DEFAULT_GROUPED_BAR, group: false })).marks).toEqual([
+      'rectY',
+    ]);
+    expect(() => groupedBarSpec({ ...DEFAULT_GROUPED_BAR, opacity: '-1' })).toThrow(/entre 0 et 1/);
+  });
+});
+
+describe('areaSpec', () => {
+  it('builds one area mark per series by default', () => {
+    const spec = areaSpec(DEFAULT_AREA);
+    expect(specSummary(spec).marks).toEqual(['area']);
+    expect(specSummary(areaSpec({ ...DEFAULT_AREA, series: 'none' })).marks).toEqual(['area']);
+  });
+
+  it('switches to a stacked area and normalizes on demand', () => {
+    const stacked = areaSpec({ ...DEFAULT_AREA, mode: 'empilée' });
+    expect(specSummary(stacked).marks).toEqual(['stackedArea']);
+    const normalized = areaSpec({ ...DEFAULT_AREA, mode: 'empilée', normalize: true });
+    expect(specSummary(normalized).marks).toEqual(['stackedArea']);
+  });
+
+  it('rejects an invalid opacity with a message', () => {
+    expect(() => areaSpec({ ...DEFAULT_AREA, opacity: 'nulle' })).toThrow(/opacity/);
+  });
+});
+
+describe('histogramSpec', () => {
+  it('builds one histogram mark and accepts an explicit bin count', () => {
+    expect(specSummary(histogramSpec(DEFAULT_HISTOGRAM)).marks).toEqual(['histogram']);
+    expect(specSummary(histogramSpec({ ...DEFAULT_HISTOGRAM, count: '8' })).marks).toEqual([
+      'histogram',
+    ]);
+  });
+
+  it('rejects a non-integer, non-positive or missing-number count', () => {
+    expect(() => histogramSpec({ ...DEFAULT_HISTOGRAM, count: '7.5' })).toThrow(/count/);
+    expect(() => histogramSpec({ ...DEFAULT_HISTOGRAM, count: '0' })).toThrow(/count/);
+    expect(() => histogramSpec({ ...DEFAULT_HISTOGRAM, count: 'abc' })).toThrow(/count/);
+  });
+
+  it('rejects an invalid opacity with a message', () => {
+    expect(() => histogramSpec({ ...DEFAULT_HISTOGRAM, opacity: '3' })).toThrow(/entre 0 et 1/);
+  });
+});
+
+describe('bubbleSpec', () => {
+  it('builds one dot mark with fill by region and the default size range', () => {
+    const spec = bubbleSpec(DEFAULT_BUBBLE);
+    expect(specSummary(spec).marks).toEqual(['dot']);
+    expect(() => bubbleSpec({ ...DEFAULT_BUBBLE, fillByCategory: false })).not.toThrow();
+  });
+
+  it('rejects a non-positive or reversed size range', () => {
+    expect(() => bubbleSpec({ ...DEFAULT_BUBBLE, sizeMin: '-2' })).toThrow(/sizeRange\.min/);
+    expect(() => bubbleSpec({ ...DEFAULT_BUBBLE, sizeMax: '0' })).toThrow(/sizeRange\.max/);
+    expect(() => bubbleSpec({ ...DEFAULT_BUBBLE, sizeMin: '30', sizeMax: '10' })).toThrow(
+      /sizeRange/,
+    );
+  });
+
+  it('rejects an invalid opacity with a message', () => {
+    expect(() => bubbleSpec({ ...DEFAULT_BUBBLE, opacity: 'gros' })).toThrow(/opacity/);
+  });
+});
+
+describe('cellSpec', () => {
+  it('builds one cell mark over the day × hour grid', () => {
+    expect(specSummary(cellSpec(DEFAULT_CELL)).marks).toEqual(['cell']);
+  });
+
+  it('rejects an invalid opacity with a message', () => {
+    expect(() => cellSpec({ ...DEFAULT_CELL, opacity: 'opaque' })).toThrow(/opacity/);
+    expect(() => cellSpec({ ...DEFAULT_CELL, opacity: '-0.2' })).toThrow(/entre 0 et 1/);
   });
 });
