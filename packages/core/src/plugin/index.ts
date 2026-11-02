@@ -29,8 +29,10 @@ import {
 /**
  * Version of this Plugin API. Follows semver: breaking changes bump the major.
  * 1.1.0 adds the extension points `marks`, `scales` and `transforms`.
+ * 1.2.0 re-exports `plot()` and the built-in marks so a plugin draws charts
+ * without importing `@d3scope/core/plot` directly.
  */
-export const PLUGIN_API_VERSION = '1.1.0';
+export const PLUGIN_API_VERSION = '1.2.0';
 
 /** A chart a plugin provides: draws `data` into `svg` with `options`. */
 export interface ChartDefinition<TData = unknown, TOptions = unknown> {
@@ -338,3 +340,59 @@ export function defineChart<TData, TOptions>(
 export type { ThemeTokens } from '../theme/index.js';
 export type { MarkFactory, ScaleFactory, TransformFn } from './extensions.js';
 export { loadPlugins, type LoadPluginsOptions, type PluginLoadResult } from './loader.js';
+
+/**
+ * The composable plot model, re-exported so a plugin builds charts with
+ * `plot()` and the marks while importing only `@d3scope/core/plugin`
+ * (LICENSE-EXCEPTION.md §1: the plugin boundary).
+ */
+export { plot, countOutside } from '../plot/plot.js';
+export { gridX, gridY } from '../plot/grid.js';
+export {
+  rectX,
+  rectY,
+  line,
+  dot,
+  ruleX,
+  ruleY,
+  text,
+  area,
+  stackedArea,
+  histogram,
+  cell,
+  boxPlot,
+} from '../plot/marks/index.js';
+export type {
+  RectOptions,
+  LineOptions,
+  DotOptions,
+  RuleOptions,
+  TextOptions,
+  AreaOptions,
+  StackedAreaOptions,
+  HistogramOptions,
+  CellOptions,
+  BoxPlotOptions,
+} from '../plot/marks/index.js';
+export { createColorScale } from '../plot/color.js';
+export {
+  createPlotScale,
+  inferKind,
+  continuousDomain,
+  stepTicks,
+  tickValues,
+} from '../plot/scales.js';
+export type {
+  AxisPosition,
+  AxisSpec,
+  ColorScale,
+  ColorSpec,
+  GridStyle,
+  Mark,
+  PlotContext,
+  PlotMargin,
+  PlotScale,
+  PlotSpec,
+  Primitive,
+  ScaleKind,
+} from '../plot/types.js';
