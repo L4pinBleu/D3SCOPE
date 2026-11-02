@@ -8,6 +8,8 @@ All notable changes to `@d3scope/core` are listed here. The format follows
 
 ### Added
 
+- Plugin API 1.3.0: the range marks `rangeX` and `rangeY` (specification bands)
+  are re-exported by `@d3scope/core/plugin`.
 - Plugin API 1.2.0: `plot()`, the built-in marks and the plot types are
   re-exported by `@d3scope/core/plugin`, so a plugin draws charts without
   importing `@d3scope/core/plot`.
