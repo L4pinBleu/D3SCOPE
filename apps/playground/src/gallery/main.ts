@@ -4,22 +4,39 @@
  * shows the spec as JSON — or an error box when the spec builder throws.
  * The pure part lives in `config.ts`; this file only touches the DOM.
  */
-import { plot, type PlotSpec } from '@d3scope/core';
+import {
+  polarArea,
+  plot,
+  radarChart,
+  type PolarAreaSpec,
+  type PlotSpec,
+  type RadarSpec,
+} from '@d3scope/core';
 import {
   areaSpec,
   axesSpec,
+  bandsSpec,
   barXSpec,
   barYSpec,
+  boxPlotSpec,
   bubbleSpec,
   cellSpec,
+  curvesSpec,
   dotSpec,
   groupedBarSpec,
   histogramSpec,
   legendSpec,
   lineSpec,
+  logSpec,
+  polarSpec,
+  radarSpec,
   ruleSpec,
   stackedBarSpec,
+  timeAxisSpec,
+  titleSpec,
   type AxisControls,
+  type CurveKind,
+  CURVE_KINDS,
 } from './config.js';
 
 // ---------------------------------------------------------------------------
@@ -73,7 +90,9 @@ interface Page {
   /** Page-specific controls (axis groups are added automatically). */
   controls: readonly Control[];
   withAxes: boolean;
-  build(controls: Record<string, string | boolean>): PlotSpec;
+  /** Set when the page draws a standalone polar chart instead of a `plot()`. */
+  polar?: 'radar' | 'polarArea';
+  build(controls: Record<string, string | boolean>): PlotSpec | RadarSpec | PolarAreaSpec;
 }
 
 /** Read one axis group of the flat record into AxisControls. */
@@ -365,6 +384,167 @@ export const PAGES: readonly Page[] = [
         y: readAxis(v, 'y'),
       }),
   },
+  {
+    id: 'title',
+    label: 'Titre',
+    withAxes: true,
+    controls: [
+      { key: 'title', label: 'Titre', kind: 'text', value: 'Ventes mensuelles' },
+      {
+        key: 'subtitle',
+        label: 'Sous-titre',
+        kind: 'text',
+        value: 'Valeur par série, janvier à décembre',
+      },
+    ],
+    build: (v) =>
+      titleSpec({
+        title: String(v.title ?? ''),
+        subtitle: String(v.subtitle ?? ''),
+      }),
+  },
+  {
+    id: 'curves',
+    label: 'Interpolations',
+    withAxes: true,
+    controls: [
+      {
+        key: 'curve',
+        label: 'Courbe',
+        kind: 'select',
+        options: [...CURVE_KINDS],
+        value: 'linear',
+      },
+    ],
+    build: (v) =>
+      curvesSpec({
+        curve: String(v.curve ?? 'linear') as CurveKind,
+        x: readAxis(v, 'x'),
+        y: readAxis(v, 'y'),
+      }),
+  },
+  {
+    id: 'bands',
+    label: 'Bandes',
+    withAxes: true,
+    controls: [
+      { key: 'bandFrom', label: 'Bande 1 — de', kind: 'number', value: '80' },
+      { key: 'bandTo', label: 'Bande 1 — à', kind: 'number', value: '120' },
+      { key: 'bandLabel', label: 'Bande 1 — étiquette', kind: 'text', value: 'Zone cible' },
+      { key: 'band2From', label: 'Bande 2 — de', kind: 'number', value: '130' },
+      { key: 'band2To', label: 'Bande 2 — à', kind: 'number', value: '150' },
+      { key: 'band2Label', label: 'Bande 2 — étiquette', kind: 'text', value: 'Alerte' },
+      { key: 'horizontal', label: 'Horizontale (rangeX)', kind: 'checkbox', value: 'false' },
+      { key: 'fill', label: 'Fill (couleur fixe)', kind: 'text', value: '' },
+      { key: 'opacity', label: 'Opacity', kind: 'number', value: '0.2' },
+    ],
+    build: (v) =>
+      bandsSpec({
+        bandFrom: String(v.bandFrom ?? ''),
+        bandTo: String(v.bandTo ?? ''),
+        bandLabel: String(v.bandLabel ?? ''),
+        band2From: String(v.band2From ?? ''),
+        band2To: String(v.band2To ?? ''),
+        band2Label: String(v.band2Label ?? ''),
+        horizontal: v.horizontal === true,
+        fill: String(v.fill ?? ''),
+        opacity: String(v.opacity ?? ''),
+        x: readAxis(v, 'x'),
+        y: readAxis(v, 'y'),
+      }),
+  },
+  {
+    id: 'log',
+    label: 'Axe log',
+    withAxes: true,
+    controls: [
+      { key: 'base', label: 'Base', kind: 'number', value: '' },
+      { key: 'minorTicks', label: 'MinorTicks', kind: 'checkbox', value: 'false' },
+    ],
+    build: (v) =>
+      logSpec({
+        base: String(v.base ?? ''),
+        minorTicks: v.minorTicks === true,
+        x: readAxis(v, 'x'),
+        y: readAxis(v, 'y'),
+      }),
+  },
+  {
+    id: 'time',
+    label: 'Axe temps',
+    withAxes: true,
+    controls: [
+      { key: 'min', label: 'Min (ISO)', kind: 'text', value: '2026-01-05' },
+      { key: 'max', label: 'Max (ISO)', kind: 'text', value: '2026-01-25' },
+      { key: 'nice', label: 'Nice', kind: 'checkbox', value: 'true' },
+    ],
+    build: (v) =>
+      timeAxisSpec({
+        min: String(v.min ?? ''),
+        max: String(v.max ?? ''),
+        nice: v.nice === true,
+        x: readAxis(v, 'x'),
+        y: readAxis(v, 'y'),
+      }),
+  },
+  {
+    id: 'boxplot',
+    label: 'Boîte à moustaches',
+    withAxes: true,
+    controls: [
+      { key: 'fill', label: 'Fill (couleur fixe)', kind: 'text', value: '' },
+      { key: 'opacity', label: 'Opacity', kind: 'number', value: '0.9' },
+      { key: 'width', label: 'Width (0.1–1)', kind: 'number', value: '0.6' },
+    ],
+    build: (v) =>
+      boxPlotSpec({
+        fill: String(v.fill ?? ''),
+        opacity: String(v.opacity ?? ''),
+        width: String(v.width ?? ''),
+        x: readAxis(v, 'x'),
+        y: readAxis(v, 'y'),
+      }),
+  },
+  {
+    id: 'radar',
+    label: 'Radar',
+    withAxes: false,
+    polar: 'radar',
+    controls: [
+      { key: 'max', label: 'Max', kind: 'number', value: '' },
+      { key: 'levels', label: 'Levels', kind: 'number', value: '4' },
+      { key: 'fill', label: 'Fill (opacité 0–1)', kind: 'number', value: '0.2' },
+      { key: 'stroke', label: 'Stroke (largeur)', kind: 'number', value: '2' },
+      { key: 'legend', label: 'Légende', kind: 'checkbox', value: 'true' },
+      { key: 'labels', label: 'Labels', kind: 'checkbox', value: 'true' },
+    ],
+    build: (v) =>
+      radarSpec({
+        max: String(v.max ?? ''),
+        levels: String(v.levels ?? ''),
+        fill: String(v.fill ?? ''),
+        stroke: String(v.stroke ?? ''),
+        legend: v.legend === true,
+        labels: v.labels === true,
+      }),
+  },
+  {
+    id: 'polar',
+    label: 'Aire polaire',
+    withAxes: false,
+    polar: 'polarArea',
+    controls: [
+      { key: 'max', label: 'Max', kind: 'number', value: '' },
+      { key: 'labels', label: 'Labels', kind: 'checkbox', value: 'true' },
+      { key: 'legend', label: 'Légende', kind: 'checkbox', value: 'true' },
+    ],
+    build: (v) =>
+      polarSpec({
+        max: String(v.max ?? ''),
+        labels: v.labels === true,
+        legend: v.legend === true,
+      }),
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -409,8 +589,10 @@ export function mountGallery(root: HTMLElement): void {
       const page = PAGES.find((p) => p.id === currentId);
       if (page === undefined) throw new Error(`page inconnue : ${currentId}`);
       const spec = page.build(values());
-      plot(svg, spec);
-      const marks = spec.marks.map((m) => m.name).join(', ');
+      if (page.polar === 'radar') radarChart(svg, spec as RadarSpec);
+      else if (page.polar === 'polarArea') polarArea(svg, spec as PolarAreaSpec);
+      else plot(svg, spec as PlotSpec);
+      const marks = 'marks' in spec ? spec.marks.map((m) => m.name).join(', ') : '';
       json.textContent = JSON.stringify({ ...spec, marks }, null, 2);
     } catch (e) {
       errorBox.hidden = false;
