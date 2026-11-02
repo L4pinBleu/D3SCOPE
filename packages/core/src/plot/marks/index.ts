@@ -7,3 +7,4 @@ export { area, stackedArea, type AreaOptions, type StackedAreaOptions } from './
 export { histogram, type HistogramOptions } from './histogram.js';
 export { cell, type CellOptions } from './cell.js';
 export { boxPlot, type BoxPlotOptions } from './boxplot.js';
+export { rangeX, rangeY, type RangeOptions } from './range.js';
