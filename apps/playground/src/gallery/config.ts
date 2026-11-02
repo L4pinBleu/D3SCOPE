@@ -4,13 +4,25 @@
  * invalid entry can be rejected with a readable message instead of a NaN in
  * the spec) and returns a PlotSpec. Unit-tested in `tests/gallery.test.ts`.
  */
-import type { AxisPosition, AxisSpec, ColorSpec, Mark, PlotSpec, ScaleKind } from '@d3scope/core';
+import type {
+  AxisPosition,
+  AxisSpec,
+  ColorSpec,
+  Mark,
+  PlotSpec,
+  PolarAreaSpec,
+  RadarSpec,
+  ScaleKind,
+} from '@d3scope/core';
 import {
   area,
+  boxPlot,
   cell,
   dot,
   histogram,
   line,
+  rangeX,
+  rangeY,
   rectX,
   rectY,
   ruleX,
@@ -19,18 +31,43 @@ import {
   text,
 } from '@d3scope/core';
 import {
+  BOX_GROUPS,
   CITIES,
   DELIVERY_TIMES,
   ENERGY,
   HEAT,
+  LOG_SERIES,
   MONTHLY,
+  POLAR_SECTORS,
+  RADAR_AXES,
+  RADAR_SERIES,
   SCATTER,
+  TIME_BANDS,
   TIME_SERIES,
+  type BandRow,
+  type BoxRow,
   type CityRow,
   type EnergyRow,
   type HeatRow,
+  type LogRow,
   type MonthlyRow,
+  type PolarRow,
+  type RadarSeriesRow,
+  type TimeBandRow,
 } from './data.js';
+
+/** How a line or an area interpolates between its points. */
+export type CurveKind = 'linear' | 'step' | 'stepBefore' | 'stepAfter' | 'monotone' | 'natural';
+
+/** The curve options of the Courbes page, in display order. */
+export const CURVE_KINDS: readonly CurveKind[] = [
+  'linear',
+  'step',
+  'stepBefore',
+  'stepAfter',
+  'monotone',
+  'natural',
+];
 
 /** Width and height of every gallery chart. */
 export const GALLERY_SIZE = { width: 560, height: 340 } as const;
@@ -802,6 +839,411 @@ export function cellSpec(c: CellControls): PlotSpec {
     x: axisSpec(c.x, 'x'),
     y: axisSpec(c.y, 'y'),
     marks,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Page 14: chart titles (PlotSpec.title and PlotSpec.subtitle).
+// ---------------------------------------------------------------------------
+
+export interface TitleControls {
+  /** Chart title, drawn centred above the plot area. */
+  title: string;
+  /** Subtitle, drawn below the title. */
+  subtitle: string;
+}
+
+export const DEFAULT_TITLE: TitleControls = {
+  title: 'Ventes mensuelles',
+  subtitle: 'Valeur par série, janvier à décembre',
+};
+
+/** Bars with a chart title and subtitle. */
+export function titleSpec(c: TitleControls): PlotSpec {
+  const title = c.title.trim();
+  const subtitle = c.subtitle.trim();
+  const marks: Mark[] = [
+    rectY<MonthlyRow>(MONTHLY, { x: 'month', y: 'value', fill: 'series', opacity: 0.9 }),
+  ];
+  return {
+    ...GALLERY_SIZE,
+    ...(title !== '' ? { title } : {}),
+    ...(subtitle !== '' ? { subtitle } : {}),
+    x: axisSpec(DEFAULT_BAR.x, 'x'),
+    y: axisSpec(DEFAULT_BAR.y, 'y'),
+    marks,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Page 15: line curves (the `curve` option of line and area).
+// ---------------------------------------------------------------------------
+
+export interface CurvesControls {
+  /** How the line and the area interpolate between their points. */
+  curve: CurveKind;
+  x: AxisControls;
+  y: AxisControls;
+}
+
+export const DEFAULT_CURVES: CurvesControls = {
+  curve: 'linear',
+  x: { ...DEFAULT_AXIS },
+  y: { ...DEFAULT_AXIS },
+};
+
+/** One area and one line over the 30-day series, both with the chosen curve. */
+export function curvesSpec(c: CurvesControls): PlotSpec {
+  if (!CURVE_KINDS.includes(c.curve)) {
+    throw new Error(
+      `curve : « ${c.curve} » n'est pas une interpolation connue (${CURVE_KINDS.join(', ')})`,
+    );
+  }
+  const marks: Mark[] = [
+    area<(typeof TIME_SERIES)[number]>(TIME_SERIES, {
+      x: 'date',
+      y: 'value',
+      series: 'series',
+      curve: c.curve,
+      opacity: 0.35,
+    }),
+    line<(typeof TIME_SERIES)[number]>(TIME_SERIES, {
+      x: 'date',
+      y: 'value',
+      series: 'series',
+      curve: c.curve,
+      strokeWidth: 2,
+    }),
+  ];
+  return {
+    ...GALLERY_SIZE,
+    x: axisSpec(c.x, 'x'),
+    y: axisSpec(c.y, 'y'),
+    marks,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Page 16: range bands (rangeY with label controls, rangeX variant).
+// ---------------------------------------------------------------------------
+
+export interface BandsControls {
+  /** Bounds of the first band, as text. */
+  bandFrom: string;
+  /** The other bound of the first band, as text. */
+  bandTo: string;
+  /** Label drawn inside the first band. */
+  bandLabel: string;
+  /** Bounds of the second band, as text (left empty to drop it). */
+  band2From: string;
+  /** The other bound of the second band, as text. */
+  band2To: string;
+  /** Label drawn inside the second band. */
+  band2Label: string;
+  /** Vertical bands (rangeX over the campaign dates) instead of horizontal. */
+  horizontal: boolean;
+  /** Fill colour of the bands, as text. Default: the theme accent. */
+  fill: string;
+  /** Band opacity, as text in [0, 1]. */
+  opacity: string;
+  x: AxisControls;
+  y: AxisControls;
+}
+
+export const DEFAULT_BANDS: BandsControls = {
+  bandFrom: '80',
+  bandTo: '120',
+  bandLabel: 'Zone cible',
+  band2From: '130',
+  band2To: '150',
+  band2Label: 'Alerte',
+  horizontal: false,
+  fill: '',
+  opacity: '0.2',
+  x: { ...DEFAULT_AXIS },
+  y: { ...DEFAULT_AXIS },
+};
+
+/** A line chart over the monthly values, behind two range bands. */
+export function bandsSpec(c: BandsControls): PlotSpec {
+  const fill = c.fill.trim();
+  const opacity = parseOpacity(c.opacity, 'opacity');
+  const rangeOptions = {
+    ...(fill !== '' ? { fill } : {}),
+    ...(opacity !== undefined ? { opacity } : {}),
+  };
+  const yBands = parseBandRows([
+    { from: c.bandFrom, to: c.bandTo, label: c.bandLabel, names: ['bandFrom', 'bandTo'] },
+    { from: c.band2From, to: c.band2To, label: c.band2Label, names: ['band2From', 'band2To'] },
+  ]);
+  const marks: Mark[] = [
+    ...(c.horizontal
+      ? [
+          rangeX<TimeBandRow>(TIME_BANDS, {
+            from: 'from',
+            to: 'to',
+            label: 'label',
+            ...rangeOptions,
+          }),
+        ]
+      : yBands.length > 0
+        ? [rangeY<BandRow>(yBands, { from: 'from', to: 'to', label: 'label', ...rangeOptions })]
+        : []),
+    line<MonthlyRow>(MONTHLY, { x: 'month', y: 'value', strokeWidth: 2 }),
+  ];
+  return {
+    ...GALLERY_SIZE,
+    x: axisSpec(c.x, 'x'),
+    y: axisSpec(c.y, 'y'),
+    marks,
+  };
+}
+
+/** One band from two numeric bounds and a label; an empty bound drops it. */
+interface BandInput {
+  from: string;
+  to: string;
+  label: string;
+  /** Control names of the two bounds, for readable errors. */
+  names: [string, string];
+}
+
+function parseBandRows(inputs: readonly BandInput[]): BandRow[] {
+  const rows: BandRow[] = [];
+  for (const input of inputs) {
+    const from = parseNumber(input.from, input.names[0]);
+    const to = parseNumber(input.to, input.names[1]);
+    if (from === undefined && to === undefined) continue;
+    if (from === undefined || to === undefined) {
+      throw new Error(`${input.names[0]} / ${input.names[1]} : les deux bornes sont requises`);
+    }
+    rows.push({ from, to, label: input.label.trim() });
+  }
+  return rows;
+}
+
+// ---------------------------------------------------------------------------
+// Page 17: log axis (type `log`, with base, minorTicks and nice).
+// ---------------------------------------------------------------------------
+
+export interface LogControls {
+  /** Base of the logarithmic axis, as text. Default: 10. */
+  base: string;
+  /** Add the multiples of the base inside each decade as minor ticks. */
+  minorTicks: boolean;
+  x: AxisControls;
+  y: AxisControls;
+}
+
+export const DEFAULT_LOG: LogControls = {
+  base: '',
+  minorTicks: false,
+  x: { ...DEFAULT_AXIS },
+  y: { ...DEFAULT_AXIS, type: 'log' },
+};
+
+/** A line over four decades of data, on a logarithmic y axis. */
+export function logSpec(c: LogControls): PlotSpec {
+  const base = parseNumber(c.base, 'y.base');
+  if (base !== undefined && base <= 1) {
+    throw new Error('y.base : doit être strictement supérieur à 1');
+  }
+  const y = axisSpec(c.y, 'y');
+  const marks: Mark[] = [
+    line<LogRow>(LOG_SERIES, { x: 'month', y: 'value', curve: 'monotone', strokeWidth: 2 }),
+  ];
+  return {
+    ...GALLERY_SIZE,
+    x: axisSpec(c.x, 'x'),
+    y: {
+      ...y,
+      type: 'log',
+      ...(base !== undefined ? { base } : {}),
+      ...(c.minorTicks ? { minorTicks: true } : {}),
+    },
+    marks,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Page 18: time axis (min/max given as ISO strings, and nice).
+// ---------------------------------------------------------------------------
+
+export interface TimeAxisControls {
+  /** Lower bound of the time axis, an ISO date as text. */
+  min: string;
+  /** Upper bound of the time axis, an ISO date as text. */
+  max: string;
+  /** Round the domain to readable values. */
+  nice: boolean;
+  x: AxisControls;
+  y: AxisControls;
+}
+
+export const DEFAULT_TIME_AXIS: TimeAxisControls = {
+  min: '2026-01-05',
+  max: '2026-01-25',
+  nice: true,
+  x: { ...DEFAULT_AXIS, type: 'time' },
+  y: { ...DEFAULT_AXIS },
+};
+
+/** A line over the 30-day series, with an explicit time domain. */
+export function timeAxisSpec(c: TimeAxisControls): PlotSpec {
+  const x = axisSpec(c.x, 'x');
+  if (x.type !== undefined && x.type !== 'time') {
+    throw new Error(`x.type : l'axe temps attend « time », pas « ${String(x.type)} »`);
+  }
+  if (c.min.trim() !== '' && c.max.trim() !== '' && new Date(c.min) > new Date(c.max)) {
+    throw new Error(`x : min (${c.min.trim()}) doit être ≤ max (${c.max.trim()})`);
+  }
+  const marks: Mark[] = [
+    line<(typeof TIME_SERIES)[number]>(TIME_SERIES, { x: 'date', y: 'value', strokeWidth: 2 }),
+  ];
+  return {
+    ...GALLERY_SIZE,
+    x: {
+      ...x,
+      type: 'time',
+      ...(c.min.trim() !== '' ? { min: c.min.trim() } : {}),
+      ...(c.max.trim() !== '' ? { max: c.max.trim() } : {}),
+      ...(c.nice ? { nice: true } : { nice: false }),
+    },
+    y: axisSpec(c.y, 'y'),
+    marks,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Page 19: box plot (one box per category).
+// ---------------------------------------------------------------------------
+
+export interface BoxPlotControls {
+  /** Literal fill colour of the boxes, as text. Default: the theme accent. */
+  fill: string;
+  /** Box opacity, as text in [0, 1]. */
+  opacity: string;
+  /** Box width as a fraction of the band, as text. Default: 0.6. */
+  width: string;
+  x: AxisControls;
+  y: AxisControls;
+}
+
+export const DEFAULT_BOX_PLOT: BoxPlotControls = {
+  fill: '',
+  opacity: '0.9',
+  width: '0.6',
+  x: { ...DEFAULT_AXIS },
+  y: { ...DEFAULT_AXIS },
+};
+
+/** One box per delivery-time group. */
+export function boxPlotSpec(c: BoxPlotControls): PlotSpec {
+  const fill = c.fill.trim();
+  const opacity = parseOpacity(c.opacity, 'opacity');
+  const width = parseNumber(c.width, 'width');
+  if (width !== undefined && (width < 0.1 || width > 1)) {
+    throw new Error('width : doit être entre 0.1 et 1');
+  }
+  const marks: Mark[] = [
+    boxPlot<BoxRow>(BOX_GROUPS, {
+      x: 'group',
+      y: 'value',
+      ...(fill !== '' ? { fill } : {}),
+      ...(opacity !== undefined ? { opacity } : {}),
+      ...(width !== undefined ? { width } : {}),
+    }),
+  ];
+  return {
+    ...GALLERY_SIZE,
+    x: axisSpec(c.x, 'x'),
+    y: axisSpec(c.y, 'y'),
+    marks,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Pages 20 and 21: the polar charts, drawn into their own SVG (not plot marks).
+// ---------------------------------------------------------------------------
+
+export interface RadarControls {
+  /** Value at the outer ring, as text. Default: nice-rounded maximum. */
+  max: string;
+  /** Concentric grid polygons, as text. Default: 4. */
+  levels: string;
+  /** Polygon fill opacity, as text in [0, 1]. */
+  fill: string;
+  /** Stroke width in pixels, as text. */
+  stroke: string;
+  /** Draw the series legend. */
+  legend: boolean;
+  /** Draw the axis labels. */
+  labels: boolean;
+}
+
+export const DEFAULT_RADAR: RadarControls = {
+  max: '',
+  levels: '4',
+  fill: '0.2',
+  stroke: '2',
+  legend: true,
+  labels: true,
+};
+
+/** The radar spec over the two products, ready for `radarChart`. */
+export function radarSpec(c: RadarControls): RadarSpec {
+  const max = parseNumber(c.max, 'max');
+  if (max !== undefined && max <= 0) throw new Error('max : doit être positif');
+  const levels = parseNumber(c.levels, 'levels');
+  if (levels !== undefined && (!Number.isInteger(levels) || levels < 1)) {
+    throw new Error('levels : doit être un entier positif');
+  }
+  const fill = parseOpacity(c.fill, 'fill');
+  const stroke = parseNumber(c.stroke, 'stroke');
+  if (stroke !== undefined && stroke < 0) throw new Error('stroke : doit être positif ou nul');
+  const series: RadarSeriesRow[] = RADAR_SERIES.map((s) => ({
+    name: s.name,
+    values: [...s.values],
+  }));
+  return {
+    ...GALLERY_SIZE,
+    axes: [...RADAR_AXES],
+    series,
+    ...(max !== undefined ? { max } : {}),
+    ...(levels !== undefined ? { levels } : {}),
+    ...(c.legend ? { color: { legend: true } } : {}),
+    ...(fill !== undefined ? { fill } : {}),
+    ...(stroke !== undefined ? { stroke } : {}),
+    ...(c.labels ? {} : { labels: false }),
+  };
+}
+
+export interface PolarControls {
+  /** Value at the outer ring, as text. Default: nice-rounded maximum. */
+  max: string;
+  /** Draw the sector labels. */
+  labels: boolean;
+  /** Draw the sector legend. */
+  legend: boolean;
+}
+
+export const DEFAULT_POLAR: PolarControls = {
+  max: '',
+  labels: true,
+  legend: true,
+};
+
+/** The polar area spec over the weekday totals, ready for `polarArea`. */
+export function polarSpec(c: PolarControls): PolarAreaSpec {
+  const max = parseNumber(c.max, 'max');
+  if (max !== undefined && max <= 0) throw new Error('max : doit être positif');
+  const data: PolarRow[] = POLAR_SECTORS.map((d) => ({ label: d.label, value: d.value }));
+  return {
+    ...GALLERY_SIZE,
+    data,
+    ...(max !== undefined ? { max } : {}),
+    ...(c.labels ? {} : { labels: false }),
+    ...(c.legend ? { color: { legend: true } } : {}),
   };
 }
 
