@@ -68,3 +68,26 @@ describe('monotone curve: no overshoot', () => {
     }
   });
 });
+
+describe('natural curve: repeated x values', () => {
+  it('stays finite when two points share an x (regression: NaN in the path)', () => {
+    const points: CurvePoint[] = [
+      { x: 0, y: 1 },
+      { x: 2, y: 4 },
+      { x: 2, y: 5 },
+      { x: 5, y: 3 },
+    ];
+    const d = curvePath(points, 'natural');
+    expect(d).not.toMatch(/NaN|Infinity|undefined/);
+    // The repeated x keeps its last point: the curve goes through (2, 5).
+    expect(d).toContain('2,5');
+  });
+
+  it('gives a finite path when every point has the same x', () => {
+    const points: CurvePoint[] = [
+      { x: 3, y: 1 },
+      { x: 3, y: 2 },
+    ];
+    expect(curvePath(points, 'natural')).not.toMatch(/NaN|Infinity|undefined/);
+  });
+});

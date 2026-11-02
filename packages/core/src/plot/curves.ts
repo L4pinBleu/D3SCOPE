@@ -75,7 +75,17 @@ function segments(points: readonly CurvePoint[], curve: CurveType): string[] {
   if (curve === 'stepBefore') return stepSegments(points, 'before');
   if (curve === 'stepAfter') return stepSegments(points, 'after');
   if (curve === 'monotone') return hermiteSegments(points, monotoneTangents(points));
-  return hermiteSegments(points, naturalSecondDerivatives(points));
+  // The spline needs strictly increasing x: a repeated x keeps its last point.
+  const unique = dropRepeatedX(points);
+  if (unique.length < 2) return segments(unique, 'linear');
+  return hermiteSegments(unique, naturalSecondDerivatives(unique));
+}
+
+/** Keep one point per x value: the last one given for each x. Order is kept. */
+function dropRepeatedX(points: readonly CurvePoint[]): CurvePoint[] {
+  const lastIndex = new Map<number, number>();
+  points.forEach((p, i) => lastIndex.set(p.x, i));
+  return points.filter((p, i) => lastIndex.get(p.x) === i);
 }
 
 /**
