@@ -161,8 +161,10 @@ function round(v: number): number {
 }
 
 /**
- * Fritsch–Carlson monotone tangents (monotone in x): secant slopes, zeroed at
- * extrema, then limited so the cubic cannot overshoot the data.
+ * Fritsch–Carlson monotone tangents (monotone in x). Interior tangents are the
+ * mean of the neighbouring secants, zeroed where the data changes direction.
+ * Each segment is then limited (both of its end tangents scaled by the same
+ * factor) so that α² + β² ≤ 9, which keeps the cubic inside its end values.
  */
 function monotoneTangents(points: readonly CurvePoint[]): number[] {
   const n = points.length;
@@ -178,29 +180,37 @@ function monotoneTangents(points: readonly CurvePoint[]): number[] {
     secants.push(h > 0 ? (p1.y - p0.y) / h : 0);
   }
   const m: number[] = new Array(n).fill(0) as number[];
-  const s0 = secants[0];
-  if (s0 !== undefined) m[0] = s0;
-  const sLast = secants[n - 2];
-  if (sLast !== undefined) m[n - 1] = sLast;
+  if (n < 2) return m;
+
+  // End tangents: the secant of the first and last segment.
+  m[0] = secants[0] ?? 0;
+  m[n - 1] = secants[n - 2] ?? 0;
   for (let i = 1; i < n - 1; i++) {
-    const sPrev = secants[i - 1];
-    const sNext = secants[i];
-    if (sPrev === undefined || sNext === undefined) continue;
-    let mi = (sPrev + sNext) / 2;
-    // Sign change (or a flat secant): the point is an extremum, stay flat.
-    if (sPrev * sNext <= 0) {
-      mi = 0;
-    } else {
-      // Limit the tangent so no control point overshoots the neighbouring data.
-      const a = mi / sPrev;
-      const b = mi / sNext;
-      const s = a * a + b * b;
-      if (s > 9) {
-        const tau = 3 / Math.sqrt(s);
-        mi = tau * a;
-      }
+    const sPrev = secants[i - 1] ?? 0;
+    const sNext = secants[i] ?? 0;
+    // A change of direction (or a flat secant) is an extremum: stay flat.
+    m[i] = sPrev * sNext <= 0 ? 0 : (sPrev + sNext) / 2;
+  }
+
+  // Limit each segment: α = m_k / s_k and β = m_{k+1} / s_k must satisfy α² + β² ≤ 9.
+  for (let k = 0; k < n - 1; k++) {
+    const s = secants[k] ?? 0;
+    if (s === 0) {
+      m[k] = 0;
+      m[k + 1] = 0;
+      continue;
     }
-    m[i] = mi;
+    // The tangents must share the segment's direction, otherwise the segment is flat.
+    if ((m[k] ?? 0) / s < 0) m[k] = 0;
+    if ((m[k + 1] ?? 0) / s < 0) m[k + 1] = 0;
+    const a = (m[k] ?? 0) / s;
+    const b = (m[k + 1] ?? 0) / s;
+    const sq = a * a + b * b;
+    if (sq > 9) {
+      const tau = 3 / Math.sqrt(sq);
+      m[k] = tau * a * s;
+      m[k + 1] = tau * b * s;
+    }
   }
   return m;
 }
