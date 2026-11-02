@@ -18,6 +18,10 @@ const DEFAULT_MARGIN: PlotMargin = { top: 16, right: 16, bottom: 28, left: 40 };
 const TITLE_SPACE = 18;
 /** Space reserved above the plot for the colour legend, in pixels. */
 const LEGEND_SPACE = 22;
+/** Space reserved above the plot for the chart title, in pixels. */
+const TITLE_BLOCK_SPACE = 22;
+/** Space reserved above the plot for the chart subtitle, in pixels. */
+const SUBTITLE_BLOCK_SPACE = 16;
 /** Unique ids for clip paths, so several plots on one page do not clash. */
 let clipCounter = 0;
 
@@ -100,13 +104,18 @@ export function plot(svg: SVGSVGElement, spec: PlotSpec): PlotContext {
   for (const mark of [...gridMarks, ...spec.marks]) mark.render(ctx);
 
   drawAxes(ctx, root);
+  const titleHeight =
+    (spec.title !== undefined ? TITLE_BLOCK_SPACE : 0) +
+    (spec.subtitle !== undefined ? SUBTITLE_BLOCK_SPACE : 0);
   if (showLegend) {
     drawLegend(
       svg,
       color.domain.map((c) => ({ label: c, color: color(c) })),
       margin,
+      titleHeight,
     );
   }
+  drawTitle(svg, spec);
   return ctx;
 }
 
@@ -120,16 +129,62 @@ function resolveMargin(
   if (ySpec.label !== undefined) m.left += TITLE_SPACE;
   if (xSpec.label !== undefined) m.bottom += TITLE_SPACE;
   if (legend) m.top += LEGEND_SPACE;
+  if (spec.title !== undefined) m.top += TITLE_BLOCK_SPACE;
+  if (spec.subtitle !== undefined) m.top += SUBTITLE_BLOCK_SPACE;
   return m;
 }
 
-/** Draw the colour legend in the space above the plot area. */
-function drawLegend(svg: SVGSVGElement, items: readonly LegendItem[], margin: PlotMargin): void {
+/** Draw the colour legend in the space above the plot area, below the title block. */
+function drawLegend(
+  svg: SVGSVGElement,
+  items: readonly LegendItem[],
+  margin: PlotMargin,
+  offsetY: number,
+): void {
   const g = document.createElementNS(SVG_NS, 'g');
   g.setAttribute('class', 'd3s-legend');
-  g.setAttribute('transform', `translate(${String(margin.left)},4)`);
+  g.setAttribute('transform', `translate(${String(margin.left)},${String(4 + offsetY)})`);
   svg.appendChild(g);
   renderCategoricalLegend(g, items, { orientation: 'horizontal' });
+}
+
+/**
+ * Draw the chart title and subtitle, centred on the SVG width.
+ *
+ * When a legend is shown, the title block is drawn above the legend, so the
+ * legend stays next to the plot area.
+ */
+function drawTitle(svg: SVGSVGElement, spec: PlotSpec): void {
+  if (spec.title === undefined && spec.subtitle === undefined) return;
+  const g = document.createElementNS(SVG_NS, 'g');
+  g.setAttribute('class', 'd3s-title-group');
+  svg.appendChild(g);
+  let y = 20;
+  if (spec.title !== undefined) {
+    const t = document.createElementNS(SVG_NS, 'text');
+    t.setAttribute('class', 'd3s-title');
+    t.setAttribute('x', String(spec.width / 2));
+    t.setAttribute('y', String(y));
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('fill', cssVar('text', LIGHT_THEME.text));
+    t.setAttribute('font-family', cssVar('fontFamily', LIGHT_THEME.fontFamily));
+    t.setAttribute('font-size', '16');
+    t.textContent = spec.title;
+    g.appendChild(t);
+    y += 16;
+  }
+  if (spec.subtitle !== undefined) {
+    const t = document.createElementNS(SVG_NS, 'text');
+    t.setAttribute('class', 'd3s-subtitle');
+    t.setAttribute('x', String(spec.width / 2));
+    t.setAttribute('y', String(y));
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('fill', cssVar('textMuted', LIGHT_THEME.textMuted));
+    t.setAttribute('font-family', cssVar('fontFamily', LIGHT_THEME.fontFamily));
+    t.setAttribute('font-size', '12');
+    t.textContent = spec.subtitle;
+    g.appendChild(t);
+  }
 }
 
 function collectColors(marks: readonly Mark[]): string[] {
