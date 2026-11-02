@@ -78,8 +78,8 @@ afterEach(() => {
 });
 
 describe('Plugin API 1.1: marks', () => {
-  it('reports API 1.1.0', () => {
-    expect(PLUGIN_API_VERSION).toBe('1.1.0');
+  it('reports API 1.2.0', () => {
+    expect(PLUGIN_API_VERSION).toBe('1.2.0');
   });
 
   it('a plugin mark is created by name and drawn by plot()', () => {

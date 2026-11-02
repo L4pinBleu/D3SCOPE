@@ -104,6 +104,30 @@ Ils sont dans `plugins/` et sont publiés avec le core, sous `AGPL-3.0-or-later`
 - `@d3scope/plugin-brush` : sélection de plage temporelle, partageable avec
   d'autres graphiques via `createTimeRangeLink()`. Graphique `brush`.
 
+## Construire un graphique avec plot() depuis un plugin
+
+Depuis l'API 1.2, `plot()` et les marks sont exportés par `@d3scope/core/plugin` :
+un plugin n'a pas besoin d'importer `@d3scope/core/plot`.
+
+```ts
+import { plot, rectY } from '@d3scope/core/plugin';
+
+const svg = document.querySelector<SVGSVGElement>('#bars')!;
+plot(svg, {
+  width: 400,
+  height: 240,
+  marks: [
+    rectY(
+      [
+        { month: 'Jan', value: 4 },
+        { month: 'Fév', value: 6 },
+      ],
+      { x: 'month', y: 'value' },
+    ),
+  ],
+});
+```
+
 ## Points d'extension (API 1.1)
 
 Un plugin peut aussi fournir des **marks**, des **échelles** et des
