@@ -75,6 +75,10 @@ export interface PlotSpec {
   color?: ColorSpec;
   /** Locale for default tick labels. Default: the library locale. */
   locale?: LocaleName | undefined;
+  /** Optional chart title, drawn centred above the plot area in the top margin. */
+  title?: string;
+  /** Optional subtitle, drawn below the title (or above the plot area when there is no title). */
+  subtitle?: string;
   /** Marks, drawn in this order (later marks are drawn on top). */
   marks: readonly Mark[];
 }
