@@ -19,17 +19,33 @@ import {
   DEFAULT_RULE,
   DEFAULT_STACKED_BAR,
   DEFAULT_AREA,
+  DEFAULT_BANDS,
+  DEFAULT_BOX_PLOT,
+  DEFAULT_CURVES,
+  DEFAULT_LOG,
+  DEFAULT_POLAR,
+  DEFAULT_RADAR,
+  DEFAULT_TIME_AXIS,
+  DEFAULT_TITLE,
+  bandsSpec,
+  boxPlotSpec,
+  curvesSpec,
   dotSpec,
   axesSpec,
   groupedBarSpec,
   histogramSpec,
   legendSpec,
   lineSpec,
+  logSpec,
   parseList,
   parseNumber,
+  polarSpec,
+  radarSpec,
   ruleSpec,
   specSummary,
   stackedBarSpec,
+  timeAxisSpec,
+  titleSpec,
   type AxisControls,
   type BarControls,
 } from '../src/gallery/config';
@@ -350,6 +366,186 @@ describe('cellSpec', () => {
 
   it('rejects an invalid opacity with a message', () => {
     expect(() => cellSpec({ ...DEFAULT_CELL, opacity: 'opaque' })).toThrow(/opacity/);
-    expect(() => cellSpec({ ...DEFAULT_CELL, opacity: '-0.2' })).toThrow(/entre 0 et 1/);
+  });
+});
+
+describe('titleSpec', () => {
+  it('sets the title and subtitle on the spec', () => {
+    const spec = titleSpec(DEFAULT_TITLE);
+    expect(spec.title).toBe('Ventes mensuelles');
+    expect(spec.subtitle).toBe('Valeur par série, janvier à décembre');
+    expect(specSummary(spec).marks).toEqual(['rectY']);
+  });
+
+  it('drops empty or whitespace-only titles and subtitles', () => {
+    const spec = titleSpec({ title: '   ', subtitle: '' });
+    expect(spec.title).toBeUndefined();
+    expect(spec.subtitle).toBeUndefined();
+  });
+});
+
+describe('curvesSpec', () => {
+  it('draws an area and a line with the default curve', () => {
+    const spec = curvesSpec(DEFAULT_CURVES);
+    expect(specSummary(spec).marks).toEqual(['area', 'line']);
+  });
+
+  it('applies the changed curve to both marks', () => {
+    const spec = curvesSpec({ ...DEFAULT_CURVES, curve: 'monotone' });
+    expect(specSummary(spec).marks).toEqual(['area', 'line']);
+  });
+
+  it('rejects an unknown curve with a message', () => {
+    expect(() => curvesSpec({ ...DEFAULT_CURVES, curve: 'zigzag' as never })).toThrow(
+      /n'est pas une interpolation/,
+    );
+  });
+});
+
+describe('bandsSpec', () => {
+  it('draws two horizontal bands behind the line by default', () => {
+    const spec = bandsSpec(DEFAULT_BANDS);
+    expect(specSummary(spec).marks).toEqual(['rangeY', 'line']);
+  });
+
+  it('switches to vertical bands (rangeX) on demand', () => {
+    const spec = bandsSpec({ ...DEFAULT_BANDS, horizontal: true });
+    expect(specSummary(spec).marks).toEqual(['rangeX', 'line']);
+  });
+
+  it('drops a band whose bounds are both empty', () => {
+    const spec = bandsSpec({
+      ...DEFAULT_BANDS,
+      band2From: '',
+      band2To: '',
+      band2Label: '',
+    });
+    expect(specSummary(spec).marks[0]).toBe('rangeY');
+    expect(specSummary(spec).marks).toEqual(['rangeY', 'line']);
+  });
+
+  it('requires both bounds of a band', () => {
+    expect(() => bandsSpec({ ...DEFAULT_BANDS, bandFrom: '80', bandTo: '' })).toThrow(
+      /les deux bornes/,
+    );
+    expect(() => bandsSpec({ ...DEFAULT_BANDS, bandFrom: '', bandTo: '120' })).toThrow(
+      /les deux bornes/,
+    );
+  });
+
+  it('rejects a non-finite bound or a bad opacity with a message', () => {
+    expect(() => bandsSpec({ ...DEFAULT_BANDS, bandFrom: 'haute' })).toThrow(/bandFrom/);
+    expect(() => bandsSpec({ ...DEFAULT_BANDS, opacity: '2' })).toThrow(/entre 0 et 1/);
+  });
+});
+
+describe('logSpec', () => {
+  it('forces a log y axis over the wide-range series', () => {
+    const spec = logSpec(DEFAULT_LOG);
+    expect(spec.y?.type).toBe('log');
+    expect(specSummary(spec).marks).toEqual(['line']);
+  });
+
+  it('sets the base and the minor ticks on demand', () => {
+    const spec = logSpec({ ...DEFAULT_LOG, base: '2', minorTicks: true });
+    expect(spec.y?.base).toBe(2);
+    expect(spec.y?.minorTicks).toBe(true);
+  });
+
+  it('rejects a base that is not above 1', () => {
+    expect(() => logSpec({ ...DEFAULT_LOG, base: '1' })).toThrow(/y\.base/);
+    expect(() => logSpec({ ...DEFAULT_LOG, base: '-3' })).toThrow(/y\.base/);
+    expect(() => logSpec({ ...DEFAULT_LOG, base: 'gros' })).toThrow(/y\.base/);
+  });
+});
+
+describe('timeAxisSpec', () => {
+  it('gives the time axis ISO string bounds and keeps nice', () => {
+    const spec = timeAxisSpec(DEFAULT_TIME_AXIS);
+    expect(spec.x?.type).toBe('time');
+    expect(spec.x?.min).toBe('2026-01-05');
+    expect(spec.x?.max).toBe('2026-01-25');
+    expect(spec.x?.nice).toBe(true);
+    expect(specSummary(spec).marks).toEqual(['line']);
+  });
+
+  it('accepts empty bounds and a nice turned off', () => {
+    const spec = timeAxisSpec({ ...DEFAULT_TIME_AXIS, min: '', max: '', nice: false });
+    expect(spec.x?.min).toBeUndefined();
+    expect(spec.x?.max).toBeUndefined();
+    expect(spec.x?.nice).toBe(false);
+  });
+
+  it('rejects a reversed range and a non-time x type', () => {
+    expect(() =>
+      timeAxisSpec({ ...DEFAULT_TIME_AXIS, min: '2026-01-25', max: '2026-01-05' }),
+    ).toThrow(/doit être ≤ max/);
+    expect(() =>
+      timeAxisSpec({ ...DEFAULT_TIME_AXIS, x: { ...DEFAULT_TIME_AXIS.x, type: 'linear' } }),
+    ).toThrow(/« time »/);
+  });
+});
+
+describe('boxPlotSpec', () => {
+  it('builds one boxPlot mark with the default options', () => {
+    const spec = boxPlotSpec(DEFAULT_BOX_PLOT);
+    expect(specSummary(spec).marks).toEqual(['boxPlot']);
+  });
+
+  it('accepts a literal fill and a changed width', () => {
+    const spec = boxPlotSpec({ ...DEFAULT_BOX_PLOT, fill: '#2f6fed', width: '0.8' });
+    expect(specSummary(spec).marks).toEqual(['boxPlot']);
+  });
+
+  it('rejects a width outside [0.1, 1] and a bad opacity', () => {
+    expect(() => boxPlotSpec({ ...DEFAULT_BOX_PLOT, width: '0.05' })).toThrow(/entre 0.1 et 1/);
+    expect(() => boxPlotSpec({ ...DEFAULT_BOX_PLOT, width: '2' })).toThrow(/entre 0.1 et 1/);
+    expect(() => boxPlotSpec({ ...DEFAULT_BOX_PLOT, opacity: 'large' })).toThrow(/opacity/);
+  });
+});
+
+describe('radarSpec', () => {
+  it('builds a radar spec over the five axes and two series', () => {
+    const spec = radarSpec(DEFAULT_RADAR);
+    expect(spec.axes).toHaveLength(5);
+    expect(spec.series).toHaveLength(2);
+    expect(spec.levels).toBe(4);
+    expect(spec.fill).toBe(0.2);
+    expect(spec.color?.legend).toBe(true);
+  });
+
+  it('accepts an explicit max, a changed level count and no labels', () => {
+    const spec = radarSpec({ ...DEFAULT_RADAR, max: '10', levels: '6', labels: false });
+    expect(spec.max).toBe(10);
+    expect(spec.levels).toBe(6);
+    expect(spec.labels).toBe(false);
+  });
+
+  it('rejects a non-positive max, a bad level count or a bad fill', () => {
+    expect(() => radarSpec({ ...DEFAULT_RADAR, max: '-1' })).toThrow(/max/);
+    expect(() => radarSpec({ ...DEFAULT_RADAR, levels: '2.5' })).toThrow(/levels/);
+    expect(() => radarSpec({ ...DEFAULT_RADAR, levels: '0' })).toThrow(/levels/);
+    expect(() => radarSpec({ ...DEFAULT_RADAR, fill: '2' })).toThrow(/entre 0 et 1/);
+  });
+});
+
+describe('polarSpec', () => {
+  it('builds a polar area spec over the seven weekday sectors', () => {
+    const spec = polarSpec(DEFAULT_POLAR);
+    expect(spec.data).toHaveLength(7);
+    expect(spec.labels).not.toBe(false);
+    expect(spec.color?.legend).toBe(true);
+  });
+
+  it('accepts an explicit max and drops the labels on demand', () => {
+    const spec = polarSpec({ ...DEFAULT_POLAR, max: '30', labels: false, legend: false });
+    expect(spec.max).toBe(30);
+    expect(spec.labels).toBe(false);
+    expect(spec.color).toBeUndefined();
+  });
+
+  it('rejects a non-positive max with a message', () => {
+    expect(() => polarSpec({ ...DEFAULT_POLAR, max: '0' })).toThrow(/max/);
+    expect(() => polarSpec({ ...DEFAULT_POLAR, max: 'large' })).toThrow(/max/);
   });
 });
