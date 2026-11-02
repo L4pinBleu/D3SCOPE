@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { curveAreaPath, curvePath, type CurvePoint } from '../src/plot/curves';
 import { plot } from '../src/plot/plot';
-import { area, areaPathD } from '../src/plot/marks/area';
+import { area, areaPathD, stackedArea } from '../src/plot/marks/area';
 import { line, pathD } from '../src/plot/marks/line';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -232,6 +232,87 @@ describe('curveAreaPath', () => {
   it('fewer than two top points gives no area', () => {
     expect(curveAreaPath(pts([[5, 5]]), pts([[5, 0]]), 'monotone')).toBe('M5,5Z');
     expect(curveAreaPath([], [], 'monotone')).toBe('');
+  });
+});
+
+describe('the curve option reaches the rendered path', () => {
+  function makeSvg(): SVGSVGElement {
+    const svg = document.createElementNS<'svg'>(SVG_NS, 'svg');
+    document.body.appendChild(svg);
+    return svg;
+  }
+
+  it('line renders a curved d attribute', () => {
+    const svg = makeSvg();
+    const rows = [
+      { x: 1, y: 10 },
+      { x: 2, y: 40 },
+      { x: 3, y: 25 },
+    ];
+    plot(svg, {
+      width: 300,
+      height: 200,
+      marks: [line(rows, { x: 'x', y: 'y', curve: 'monotone' })],
+    });
+    const path = svg.querySelector('path.d3s-line');
+    expect(path).not.toBeNull();
+    expect(path?.getAttribute('d')).toContain('C');
+    svg.remove();
+  });
+
+  it('area renders a curved d attribute', () => {
+    const svg = makeSvg();
+    const rows = [
+      { x: 1, y: 10 },
+      { x: 2, y: 40 },
+      { x: 3, y: 25 },
+    ];
+    plot(svg, {
+      width: 300,
+      height: 200,
+      marks: [area(rows, { x: 'x', y: 'y', curve: 'natural' })],
+    });
+    const path = svg.querySelector('path.d3s-area');
+    expect(path).not.toBeNull();
+    expect(path?.getAttribute('d')).toContain('C');
+    expect(path?.getAttribute('d')?.endsWith('Z')).toBe(true);
+    svg.remove();
+  });
+
+  it('stackedArea renders a curved d attribute', () => {
+    const svg = makeSvg();
+    const rows = [
+      { x: 1, y: 1, s: 'a' },
+      { x: 2, y: 2, s: 'a' },
+      { x: 3, y: 1, s: 'a' },
+      { x: 1, y: 1, s: 'b' },
+      { x: 2, y: 1, s: 'b' },
+      { x: 3, y: 2, s: 'b' },
+    ];
+    plot(svg, {
+      width: 300,
+      height: 200,
+      marks: [stackedArea(rows, { x: 'x', y: 'y', series: 's', curve: 'monotone' })],
+    });
+    const paths = [...svg.querySelectorAll('path.d3s-area')];
+    expect(paths.length).toBeGreaterThan(0);
+    for (const path of paths) {
+      expect(path.getAttribute('d')).toContain('C');
+    }
+    svg.remove();
+  });
+
+  it('the default curve keeps the plain polyline', () => {
+    const svg = makeSvg();
+    const rows = [
+      { x: 1, y: 10 },
+      { x: 2, y: 40 },
+    ];
+    plot(svg, { width: 300, height: 200, marks: [line(rows, { x: 'x', y: 'y' })] });
+    const path = svg.querySelector('path.d3s-line');
+    expect(path?.getAttribute('d')?.startsWith('M')).toBe(true);
+    expect(path?.getAttribute('d')).not.toContain('C');
+    svg.remove();
   });
 });
 

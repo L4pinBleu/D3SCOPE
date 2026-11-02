@@ -8,6 +8,7 @@
  * x positions).
  */
 import { cssVar, LIGHT_THEME } from '../../theme/index.js';
+import { curveAreaPath, type CurveType } from '../curves.js';
 import { normalizeStack, stackY, type StackedRow } from '../transforms.js';
 import type { Mark, PlotContext, Primitive } from '../types.js';
 import {
@@ -33,6 +34,8 @@ export interface AreaOptions<T> {
   fill?: string;
   /** Opacity of the areas. Default: 1. */
   opacity?: number;
+  /** How the top line is interpolated between points. Default: `linear`. */
+  curve?: CurveType;
 }
 
 /**
@@ -97,7 +100,7 @@ export function area<T>(rows: readonly T[], options: AreaOptions<T>): Mark {
         } else {
           path.setAttribute('fill', cssVar('accent', LIGHT_THEME.accent));
         }
-        path.setAttribute('d', areaPathD(points, ctx, base));
+        path.setAttribute('d', areaPathD(points, ctx, base, options.curve));
         layer.appendChild(path);
       }
     },
@@ -112,25 +115,23 @@ export function areaPathD(
   points: readonly { x: Primitive; y: number }[],
   ctx: PlotContext,
   baseline: number,
+  curve: CurveType = 'linear',
 ): string {
   const sorted = [...points];
   if (ctx.x.kind !== 'band') sorted.sort((a, b) => toMillis(a.x) - toMillis(b.x));
-  let d = '';
-  let first = true;
-  let firstX = '';
+  if (sorted.length === 0) return 'Z';
+  const top: { x: number; y: number }[] = [];
   for (const point of sorted) {
-    const px = xPosition(ctx, point.x);
-    const py = ctx.y.position(point.y);
-    if (first) firstX = String(px);
-    d += `${first ? 'M' : 'L'}${String(px)},${String(py)}`;
-    first = false;
+    top.push({ x: xPosition(ctx, point.x), y: ctx.y.position(point.y) });
   }
-  const last = sorted[sorted.length - 1];
-  if (sorted.length > 1 && last !== undefined) {
-    const lastX = String(xPosition(ctx, last.x));
-    d += `L${lastX},${String(baseline)}L${firstX},${String(baseline)}`;
-  }
-  return `${d}Z`;
+  const first = top[0];
+  const last = top[top.length - 1];
+  if (first === undefined || last === undefined) return 'Z';
+  const bottom = [
+    { x: first.x, y: baseline },
+    { x: last.x, y: baseline },
+  ];
+  return curveAreaPath(top, bottom, curve);
 }
 
 export interface StackedAreaOptions<T> {
@@ -144,6 +145,8 @@ export interface StackedAreaOptions<T> {
   normalize?: boolean;
   /** Opacity of the areas. Default: 1. */
   opacity?: number;
+  /** How the top and bottom lines are interpolated between points. Default: `linear`. */
+  curve?: CurveType;
 }
 
 export function stackedArea<T>(rows: readonly T[], options: StackedAreaOptions<T>): Mark {
@@ -214,18 +217,14 @@ export function stackedArea<T>(rows: readonly T[], options: StackedAreaOptions<T
         const sorted = [...segments];
         if (ctx.x.kind !== 'band') sorted.sort((a, b) => toMillis(a.x) - toMillis(b.x));
         if (sorted.length < 2) continue;
-        let d = '';
-        let first = true;
+        const top: { x: number; y: number }[] = [];
+        const bottom: { x: number; y: number }[] = [];
         for (const s of sorted) {
-          d += `${first ? 'M' : 'L'}${String(xPosition(ctx, s.x))},${String(ctx.y.position(s.y1))}`;
-          first = false;
+          const x = xPosition(ctx, s.x);
+          top.push({ x, y: ctx.y.position(s.y1) });
+          bottom.push({ x, y: ctx.y.position(s.y0) });
         }
-        for (let i = sorted.length - 1; i >= 0; i--) {
-          const s = sorted[i];
-          if (s === undefined) continue;
-          d += `L${String(xPosition(ctx, s.x))},${String(ctx.y.position(s.y0))}`;
-        }
-        d += 'Z';
+        const d = curveAreaPath(top, bottom, options.curve);
         const path = document.createElementNS(SVG_NS, 'path');
         path.setAttribute('class', 'd3s-area');
         path.setAttribute('data-series', series === '\u0000no-series' ? '' : series);
