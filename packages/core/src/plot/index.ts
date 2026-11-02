@@ -13,6 +13,8 @@ export {
   histogram,
   cell,
   boxPlot,
+  rangeX,
+  rangeY,
 } from './marks/index.js';
 export type {
   RectOptions,
@@ -25,6 +27,7 @@ export type {
   HistogramOptions,
   CellOptions,
   BoxPlotOptions,
+  RangeOptions,
 } from './marks/index.js';
 export {
   radarChart,
