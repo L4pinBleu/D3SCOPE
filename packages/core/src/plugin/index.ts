@@ -31,8 +31,9 @@ import {
  * 1.1.0 adds the extension points `marks`, `scales` and `transforms`.
  * 1.2.0 re-exports `plot()` and the built-in marks so a plugin draws charts
  * without importing `@d3scope/core/plot` directly.
+ * 1.3.0 re-exports the range marks (`rangeX`, `rangeY`) for specification bands.
  */
-export const PLUGIN_API_VERSION = '1.2.0';
+export const PLUGIN_API_VERSION = '1.3.0';
 
 /** A chart a plugin provides: draws `data` into `svg` with `options`. */
 export interface ChartDefinition<TData = unknown, TOptions = unknown> {
@@ -361,6 +362,8 @@ export {
   histogram,
   cell,
   boxPlot,
+  rangeX,
+  rangeY,
 } from '../plot/marks/index.js';
 export type {
   RectOptions,
@@ -373,6 +376,7 @@ export type {
   HistogramOptions,
   CellOptions,
   BoxPlotOptions,
+  RangeOptions,
 } from '../plot/marks/index.js';
 export { createColorScale } from '../plot/color.js';
 export {
