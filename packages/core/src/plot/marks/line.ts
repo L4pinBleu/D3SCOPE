@@ -6,6 +6,7 @@
  * drawn as one extra line in the theme accent.
  */
 import { cssVar, LIGHT_THEME } from '../../theme/index.js';
+import { curvePath, type CurveType } from '../curves.js';
 import type { Mark, PlotContext, Primitive } from '../types.js';
 import { accessor, isPlottable, toMillis, toNumber, xPosition, type Accessor } from './shared.js';
 
@@ -20,6 +21,8 @@ export interface LineOptions<T> {
   stroke?: string;
   /** Stroke width in pixels. Default: 1.5. */
   strokeWidth?: number;
+  /** How the line is interpolated between points. Default: `linear`. */
+  curve?: CurveType;
 }
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -72,7 +75,7 @@ export function line<T>(rows: readonly T[], options: LineOptions<T>): Mark {
         } else {
           path.setAttribute('stroke', cssVar('accent', LIGHT_THEME.accent));
         }
-        path.setAttribute('d', pathD(points, ctx));
+        path.setAttribute('d', pathD(points, ctx, options.curve));
         layer.appendChild(path);
       }
     },
@@ -80,16 +83,15 @@ export function line<T>(rows: readonly T[], options: LineOptions<T>): Mark {
 }
 
 /** A path string from the points, sorted by x (data order for band x). */
-export function pathD(points: readonly { x: Primitive; y: number }[], ctx: PlotContext): string {
+export function pathD(
+  points: readonly { x: Primitive; y: number }[],
+  ctx: PlotContext,
+  curve: CurveType = 'linear',
+): string {
   const sorted = [...points];
   if (ctx.x.kind !== 'band') sorted.sort((a, b) => toMillis(a.x) - toMillis(b.x));
-  let d = '';
-  let first = true;
-  for (const point of sorted) {
-    const px = xPosition(ctx, point.x);
-    const py = ctx.y.position(point.y);
-    d += `${first ? 'M' : 'L'}${String(px)},${String(py)}`;
-    first = false;
-  }
-  return d;
+  return curvePath(
+    sorted.map((point) => ({ x: xPosition(ctx, point.x), y: ctx.y.position(point.y) })),
+    curve,
+  );
 }
