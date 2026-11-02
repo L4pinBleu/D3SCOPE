@@ -31,10 +31,16 @@ export interface AxisSpec {
    * A name registered by a plugin's `scales` (Plugin API 1.1) is also accepted.
    */
   type?: ScaleKind | (string & {});
-  /** Lower bound of the domain. Turns off `nice` on this axis. */
-  min?: number | Date;
-  /** Upper bound of the domain. Turns off `nice` on this axis. */
-  max?: number | Date;
+  /**
+   * Lower bound of the domain. A number, a `Date`, or — on a time axis — an ISO
+   * string such as `2026-01-01`. Turns off `nice` on this axis.
+   */
+  min?: number | Date | string;
+  /**
+   * Upper bound of the domain. A number, a `Date`, or — on a time axis — an ISO
+   * string such as `2026-01-31`. Turns off `nice` on this axis.
+   */
+  max?: number | Date | string;
   /** Round the domain to readable values. Default: `true` unless `min` or `max` is set. */
   nice?: boolean;
   /** Distance between two ticks, in data units. Numeric linear axes only. */
@@ -51,6 +57,10 @@ export interface AxisSpec {
   position?: AxisPosition;
   /** Reverse the direction of the axis. Default: `false`. */
   reverse?: boolean;
+  /** Base of a logarithmic axis. Default: `10`. Log axes only. */
+  base?: number;
+  /** Add the multiples of the base inside each decade as minor ticks. Log axes only. */
+  minorTicks?: boolean;
   /** Category order for band axes. Default: order of first appearance in the data. */
   domain?: readonly string[];
 }

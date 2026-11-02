@@ -164,8 +164,13 @@ export function countOutside(values: readonly Primitive[], spec: AxisSpec): numb
   return count;
 }
 
-function toNum(v: number | Date): number {
-  return v instanceof Date ? v.getTime() : v;
+function toNum(v: number | Date | string): number {
+  if (v instanceof Date) return v.getTime();
+  if (typeof v === 'string') {
+    const t = Date.parse(v);
+    return Number.isNaN(t) ? Number(v) : t;
+  }
+  return v;
 }
 
 function drawAxes(ctx: PlotContext, root: SVGGElement): void {
@@ -204,11 +209,12 @@ function drawAxis(
       ? { tickFormat: spec.tickFormat as unknown as (v: AxisDomain) => string }
       : {}),
   };
-  if (spec.step === undefined) {
+  if (spec.step === undefined && spec.minorTicks !== true) {
     renderAxis(group, d3Scale, options);
     return;
   }
-  // A fixed step: give d3-axis the tick values explicitly.
+  // A fixed step, or minor ticks on a log axis: give d3-axis the tick values
+  // explicitly, since neither comes out of `axis.ticks(count)`.
   const generator = createAxis(d3Scale, options);
   generator.tickValues(tickValues(scale, spec) as unknown as AxisDomain[]);
   select(group)

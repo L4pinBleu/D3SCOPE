@@ -53,8 +53,17 @@ export function continuousDomain(
   return isTime ? [new Date(lo), new Date(hi)] : [lo, hi];
 }
 
-function toNumber(v: number | Date): number {
-  return v instanceof Date ? v.getTime() : v;
+/**
+ * A bound or value as a number: dates become timestamps, and strings are read
+ * as ISO dates first (time axes), then as plain numbers.
+ */
+function toNumber(v: number | Date | string): number {
+  if (v instanceof Date) return v.getTime();
+  if (typeof v === 'string') {
+    const t = Date.parse(v);
+    return Number.isNaN(t) ? Number(v) : t;
+  }
+  return v;
 }
 
 /**
@@ -94,7 +103,9 @@ export function tickValues(scale: PlotScale, spec: AxisSpec): Primitive[] {
 /** Options given to the d3 scale for a continuous axis. */
 function continuousOptions(spec: AxisSpec): ContinuousScaleOptions {
   const fixed = spec.min !== undefined || spec.max !== undefined;
-  return { nice: spec.nice ?? !fixed, clamp: false };
+  const opts: ContinuousScaleOptions = { nice: spec.nice ?? !fixed, clamp: false };
+  if (spec.base !== undefined) opts.base = spec.base;
+  return opts;
 }
 
 /**
@@ -187,7 +198,16 @@ function continuousScale(
         }
         return stepTicks([Number(domain[0]), Number(domain[1])], spec.step);
       }
-      return d3.ticks(count);
+      const values = d3.ticks(count);
+      if (kind === 'log') {
+        // Log axes: decade ticks by default; multiples inside each decade only with minorTicks.
+        const base = spec.base ?? 10;
+        const decades = logDecadeTicks(domain as [number, number], base);
+        return spec.minorTicks === true
+          ? logMinorTicks(domain as [number, number], decades, base)
+          : decades;
+      }
+      return values;
     },
     domain: d3.domain(),
     range,
@@ -198,4 +218,47 @@ function uniqueStrings(values: readonly Primitive[]): string[] {
   const seen = new Set<string>();
   for (const v of values) seen.add(String(v));
   return [...seen];
+}
+
+/**
+ * Decade ticks of a log axis: base^e for each whole exponent e whose value lies
+ * inside the domain.
+ */
+export function logDecadeTicks(domain: readonly [number, number], base: number): number[] {
+  const lo = Math.min(domain[0], domain[1]);
+  const hi = Math.max(domain[0], domain[1]);
+  if (!(lo > 0) || !(hi > 0)) return [];
+  const logBase = Math.log(base);
+  const e0 = Math.floor(Math.log(lo) / logBase - 1e-9);
+  const e1 = Math.ceil(Math.log(hi) / logBase + 1e-9);
+  const out: number[] = [];
+  for (let e = e0; e <= e1; e++) {
+    const v = Number(Math.pow(base, e).toPrecision(12));
+    if (v >= lo && v <= hi) out.push(v);
+  }
+  return out;
+}
+
+/**
+ * Minor ticks of a log axis: the multiples of the base inside each decade of
+ * the domain, merged with the decade ticks and sorted.
+ */
+export function logMinorTicks(
+  domain: readonly [number, number],
+  ticks: readonly number[],
+  base: number,
+): number[] {
+  const lo = Math.min(domain[0], domain[1]);
+  const hi = Math.max(domain[0], domain[1]);
+  const logBase = Math.log(base);
+  const e0 = Math.floor(Math.log(lo) / logBase + 1e-9);
+  const e1 = Math.ceil(Math.log(hi) / logBase - 1e-9);
+  const out = new Set<number>(ticks);
+  for (let e = e0; e <= e1; e++) {
+    for (let m = 2; m < base; m++) {
+      const v = Number((Math.pow(base, e) * m).toPrecision(12));
+      if (v > lo && v < hi) out.add(v);
+    }
+  }
+  return [...out].sort((a, b) => a - b);
 }
