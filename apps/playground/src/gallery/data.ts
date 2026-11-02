@@ -139,6 +139,114 @@ export const CITIES: readonly CityRow[] = [
   { name: 'Nightsong', population: 0.7, gdp: 19, region: 'Ouest' },
 ];
 
+// ---------------------------------------------------------------------------
+// Fixtures for the pages of the new core features: titles, curves, bands,
+// log and time axes, box plots, radar and polar area. Synthetic data only.
+// ---------------------------------------------------------------------------
+
+/** One month and one value spanning several decades. */
+export interface LogRow {
+  month: string;
+  value: number;
+}
+
+/** Twelve monthly values over four decades: a straight line on a log axis. */
+export const LOG_SERIES: readonly LogRow[] = [
+  { month: 'Jan', value: 1.2 },
+  { month: 'Fév', value: 3.5 },
+  { month: 'Mar', value: 9 },
+  { month: 'Avr', value: 24 },
+  { month: 'Mai', value: 65 },
+  { month: 'Juin', value: 180 },
+  { month: 'Juil', value: 520 },
+  { month: 'Août', value: 1400 },
+  { month: 'Sep', value: 3900 },
+  { month: 'Oct', value: 10500 },
+  { month: 'Nov', value: 28000 },
+  { month: 'Déc', value: 76000 },
+];
+
+/** One band: two bounds (order does not matter) and a label. */
+export interface BandRow {
+  from: number;
+  to: number;
+  label: string;
+}
+
+/** Two tolerance zones over the monthly values, for `rangeY`. */
+export const SPEC_BANDS: readonly BandRow[] = [
+  { from: 80, to: 120, label: 'Zone cible' },
+  { from: 130, to: 150, label: 'Alerte' },
+];
+
+/** One date band over the 30-day series, for `rangeX`. */
+export interface TimeBandRow {
+  from: Date;
+  to: Date;
+  label: string;
+}
+
+/** Two campaign periods over the 30-day series, for `rangeX`. */
+export const TIME_BANDS: readonly TimeBandRow[] = [
+  {
+    from: new Date(Date.UTC(2026, 0, 6)),
+    to: new Date(Date.UTC(2026, 0, 12)),
+    label: 'Campagne A',
+  },
+  {
+    from: new Date(Date.UTC(2026, 0, 18)),
+    to: new Date(Date.UTC(2026, 0, 24)),
+    label: 'Campagne B',
+  },
+];
+
+/** One category and one value, for the box plot. */
+export interface BoxRow {
+  group: string;
+  value: number;
+}
+
+/** Four groups of delivery times, with enough spread for whiskers and an outlier. */
+export const BOX_GROUPS: readonly BoxRow[] = ['A', 'B', 'C', 'D'].flatMap((group, g) =>
+  Array.from({ length: 9 }, (_, i) => ({
+    group,
+    value:
+      20 + g * 8 + Math.round(6 * Math.sin((i / 9) * Math.PI * 2)) + (i === 4 && g === 1 ? 30 : 0),
+  })),
+);
+
+/** One radar series: a name and one value per axis. */
+export interface RadarSeriesRow {
+  name: string;
+  values: number[];
+}
+
+/** The five axes of the radar. */
+export const RADAR_AXES: readonly string[] = ['Qualité', 'Coût', 'Délai', 'Service', 'Innovation'];
+
+/** Two products compared on the five radar axes. */
+export const RADAR_SERIES: readonly RadarSeriesRow[] = [
+  { name: 'Produit A', values: [8, 6, 7, 9, 5] },
+  { name: 'Produit B', values: [6, 8, 5, 7, 8] },
+];
+
+/** One polar sector: a label and a non-negative value. */
+export interface PolarRow {
+  label: string;
+  value: number;
+}
+
+/** Seven weekday totals for the polar area chart. */
+export const POLAR_SECTORS: readonly PolarRow[] = [
+  { label: 'Lun', value: 12 },
+  { label: 'Mar', value: 18 },
+  { label: 'Mer', value: 9 },
+  { label: 'Jeu', value: 22 },
+  { label: 'Ven', value: 16 },
+  { label: 'Sam', value: 28 },
+  { label: 'Dim', value: 6 },
+];
+
 /** One hour of one day: the temperature, in °C. */
 export interface HeatRow {
   day: string;
