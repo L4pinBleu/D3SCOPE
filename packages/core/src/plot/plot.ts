@@ -4,7 +4,7 @@
  */
 import { select } from 'd3-selection';
 import type { AxisDomain, AxisScale } from 'd3-axis';
-import { createAxis, renderAxis } from '../axes/index.js';
+import { createAxis, defaultTickFormat, renderAxis } from '../axes/index.js';
 import { renderCategoricalLegend, type LegendItem } from '../legends/index.js';
 import { cssVar, LIGHT_THEME } from '../theme/index.js';
 import { createColorScale } from './color.js';
@@ -17,6 +17,7 @@ import type {
   PlotContext,
   PlotMargin,
   PlotSpec,
+  PlotScale,
   Primitive,
   ZoomView,
 } from './types.js';
@@ -290,19 +291,37 @@ function drawAxis(
     renderAxis(group, d3Scale, options);
     return;
   }
-  // Ticks are given explicitly, so the ones outside the visible plot can be
-  // dropped while zoomed. Without zoom every tick is visible and nothing changes.
-  const all =
-    spec.step === undefined && spec.minorTicks !== true
-      ? scale.ticks(options.tickCount)
-      : tickValues(scale, spec);
+  // While zoomed, the ticks are taken from the part of the axis that is visible,
+  // so a zoomed axis keeps its labels, and their format follows that part. Without
+  // zoom the visible part is the whole domain and the ticks do not change.
   const span = axis === 'x' ? ctx.innerWidth : ctx.innerHeight;
-  const visible = all.filter((value) => {
+  const part = visiblePart(scale, span);
+  const count = options.tickCount;
+  let all: Primitive[];
+  if (spec.minorTicks === true) {
+    all = tickValues(scale, spec);
+  } else if (spec.step !== undefined) {
+    all =
+      part !== undefined && scale.kind === 'linear'
+        ? stepValues(part.lo, part.hi, spec.step)
+        : tickValues(scale, spec);
+  } else {
+    all = (part?.copy ?? (d3Scale as unknown as ContinuousD3)).ticks(count) as Primitive[];
+  }
+  const inView = all.filter((value) => {
     const p = scale.position(value);
     return p >= -VISIBLE_EPSILON && p <= span + VISIBLE_EPSILON;
   });
-  const generator = createAxis(d3Scale, options);
-  generator.tickValues(visible as unknown as AxisDomain[]);
+  const format =
+    spec.tickFormat ??
+    (part !== undefined
+      ? defaultTickFormat(part.copy as unknown as AxisScale<AxisDomain>, count, ctx.locale)
+      : undefined);
+  const generator = createAxis(d3Scale, {
+    ...options,
+    ...(format !== undefined ? { tickFormat: format as unknown as (v: AxisDomain) => string } : {}),
+  });
+  generator.tickValues(inView as unknown as AxisDomain[]);
   select(group)
     .style('color', cssVar('textMuted', LIGHT_THEME.textMuted))
     .style('font-family', cssVar('fontFamily', LIGHT_THEME.fontFamily))
@@ -312,6 +331,52 @@ function drawAxis(
 
 /** Tolerance, in pixels, when a tick is tested against the visible plot. */
 const VISIBLE_EPSILON = 1e-6;
+
+/** The part of a continuous d3 scale that the axis helpers use. */
+interface ContinuousD3 {
+  invert(pixel: number): unknown;
+  copy(): ContinuousD3;
+  domain(values: unknown[]): ContinuousD3;
+  ticks(count: number): unknown[];
+}
+
+/** The visible part of an axis: its scale over the visible values, and their range. */
+interface VisiblePart {
+  /** A copy of the scale whose domain is the visible values (same range). */
+  readonly copy: ContinuousD3;
+  readonly lo: number;
+  readonly hi: number;
+}
+
+function numberOf(value: unknown): number {
+  return value instanceof Date ? value.getTime() : Number(value);
+}
+
+/**
+ * The values shown on the visible part of a continuous axis. Undefined when the
+ * scale cannot be inverted there (band axes, or a log axis with values below 0).
+ */
+function visiblePart(scale: PlotScale, span: number): VisiblePart | undefined {
+  if (scale.kind === 'band') return undefined;
+  const d3 = scale.d3 as ContinuousD3;
+  const a = d3.invert(0);
+  const b = d3.invert(span);
+  const lo = Math.min(numberOf(a), numberOf(b));
+  const hi = Math.max(numberOf(a), numberOf(b));
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi <= lo) return undefined;
+  if (scale.kind === 'log' && lo <= 0) return undefined;
+  return { copy: d3.copy().domain([a, b]), lo, hi };
+}
+
+/** Multiples of `step` between `lo` and `hi` (fixed-step linear axes). */
+function stepValues(lo: number, hi: number, step: number): Primitive[] {
+  if (!(step > 0)) throw new RangeError('plot: step must be positive');
+  const out: Primitive[] = [];
+  const first = Math.ceil(lo / step - 1e-9);
+  const last = Math.floor(hi / step + 1e-9);
+  for (let k = first; k <= last; k += 1) out.push(Number((k * step).toPrecision(12)));
+  return out;
+}
 
 /**
  * Stop the axis line at the plot's edges. While zoomed, the scale extends past

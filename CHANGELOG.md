@@ -19,6 +19,8 @@ All notable changes to `@d3scope/core` are listed here. The format follows
 - Zoom on a trackpad: Shift or Ctrl with the left button draws the selection, a
   pinch (wheel with ctrlKey) zooms faster, and the axes draw only the ticks in the
   visible plot, with the axis line stopped at its edges.
+- Zoomed axes take their ticks from the visible part, so a zoomed axis keeps its
+  labels, and their format follows the visible values.
 - Plugin API 1.3.0: the range marks `rangeX` and `rangeY` (specification bands)
   are re-exported by `@d3scope/core/plugin`.
 - Plugin API 1.2.0: `plot()`, the built-in marks and the plot types are
