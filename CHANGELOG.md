@@ -14,8 +14,10 @@ All notable changes to `@d3scope/core` are listed here. The format follows
   link (`link`: `independent` or `joint`). Helpers `getZoomView` and `resetZoom`.
 - `plot()` option `onRender`: called after every draw, including zoom redraws,
   for decorations that `plot()` does not draw.
-- Zoom range: `zoom.minZoom` and `zoom.maxZoom` bound the zoom factor. A minZoom below
-  1 zooms out past the data, down to that factor.
+- Zoom limits in data values: `zoom.x` and `zoom.y` bound the visible window (`min`,
+  `max`), and `minSpan` and `maxSpan` bound its width (linear and time axes).
+  `zoom.isUnlimitedZoomOut` lifts the default bound: the view may zoom out without
+  limit.
 - Zoom on a trackpad: Shift or Ctrl with the left button draws the selection, a
   pinch (wheel with ctrlKey) zooms faster, and the axes draw only the ticks in the
   visible plot, with the axis line stopped at its edges.

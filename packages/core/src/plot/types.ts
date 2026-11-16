@@ -183,6 +183,21 @@ export type ZoomAxes = 'x' | 'y' | 'both';
  */
 export type ZoomLink = 'independent' | 'joint';
 
+/**
+ * Limits of one axis, in its own data values: numbers, dates, or ISO dates on a time
+ * axis. The limits do not move with the zoom.
+ */
+export interface AxisZoomLimits {
+  /** Lowest value the view can show. Default: the lowest value of the axis. */
+  min?: number | Date | string;
+  /** Highest value the view can show. Default: the highest value of the axis. */
+  max?: number | Date | string;
+  /** Narrowest visible width, in data units (linear and time axes). Default: no limit. */
+  minSpan?: number;
+  /** Widest visible width, in data units (linear and time axes). Default: the whole axis. */
+  maxSpan?: number;
+}
+
 /** Zoom and pan of the plot area. */
 export interface ZoomSpec {
   /** Turn zoom and pan on. Default: `false`. */
@@ -191,14 +206,15 @@ export interface ZoomSpec {
   axes?: ZoomAxes;
   /** Wheel behaviour across axes. Default: `independent`. */
   link?: ZoomLink;
+  /** Limits of the x axis, in its data values. */
+  x?: AxisZoomLimits;
+  /** Limits of the y axis, in its data values. */
+  y?: AxisZoomLimits;
   /**
-   * Smallest zoom factor, where 1 is the full view. Below 1 the view zooms out past the
-   * data, down to this factor: a very small value gives an almost unlimited zoom out.
-   * Default: `1` (no zoom out beyond the full view).
+   * Zoom out without bound: the view may then show past the data of the axis.
+   * Default: `false`, the view stays within the axis.
    */
-  minZoom?: number;
-  /** Largest zoom factor. Default: `1000`. */
-  maxZoom?: number;
+  isUnlimitedZoomOut?: boolean;
   /** Zoom with the mouse wheel. Default: `true`. */
   isWheelEnabled?: boolean;
   /** Pan by dragging with the left button. Default: `true`. */

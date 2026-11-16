@@ -11,7 +11,15 @@
  * `plot()` keeps one session per SVG. Its view survives data updates, and every
  * handler redraws with the latest spec.
  */
-import type { AxisView, PlotContext, PlotSpec, ZoomSpec, ZoomView } from './types.js';
+import type {
+  AxisView,
+  AxisZoomLimits,
+  PlotContext,
+  PlotSpec,
+  Primitive,
+  ZoomSpec,
+  ZoomView,
+} from './types.js';
 
 /** Largest zoom factor on one axis. */
 export const MAX_ZOOM = 1000;
@@ -61,40 +69,130 @@ export function viewRange(view: AxisView, base: readonly [number, number]): [num
   return [view.k * base[0] + view.t, view.k * base[1] + view.t];
 }
 
-/** Smallest and largest zoom factor of an axis. */
-export interface ZoomRange {
-  readonly min: number;
-  readonly max: number;
-}
-
-/** Default range: no zoom out beyond the full view, and up to `MAX_ZOOM` in. */
-export const DEFAULT_ZOOM_RANGE: ZoomRange = { min: 1, max: MAX_ZOOM };
-
 /**
- * The zoom range of a chart. A `minZoom` below 1 allows zooming out past the full
- * view, down to that factor (a very small value gives an almost unlimited zoom out).
+ * The bounds of one axis, in its base frame (the pixel range of the full view).
+ * The view may show base pixels `pL` to `pH` only, with zoom factors from `kMin`
+ * to `kMax`.
  */
-export function zoomRangeOf(zoom: ZoomSpec): ZoomRange {
-  const min = zoom.minZoom ?? DEFAULT_ZOOM_RANGE.min;
-  const max = zoom.maxZoom ?? DEFAULT_ZOOM_RANGE.max;
-  if (!(min > 0) || !(max >= min)) {
-    throw new RangeError('plot: zoom.minZoom must be positive and no larger than zoom.maxZoom');
-  }
-  return { min, max };
+export interface AxisBounds {
+  readonly span: number;
+  readonly pL: number;
+  readonly pH: number;
+  readonly kMin: number;
+  readonly kMax: number;
+}
+
+/** Smallest zoom factor of an unlimited view (zoom out without bound). */
+const UNLIMITED_MIN_K = 1e-9;
+
+/** The bounds of a chart that keeps the full view as its largest view. */
+export function defaultBounds(span: number): AxisBounds {
+  return { span, pL: 0, pH: span, kMin: 1, kMax: MAX_ZOOM };
 }
 
 /**
- * Keep the view in bounds. At a factor of 1 or more the data covers the plot:
- * `t` stays within `[span * (1 - k), 0]`. Below 1 (zoomed out) the data only has to
- * overlap the plot: `t` stays within `[-k * span, span]`.
+ * The bounds of one axis, from its limits in data values. The limits are read on the
+ * full view, so they do not move with the zoom. Without limits, the view stays in the
+ * axis's own domain, unless `unlimited` lifts that bound.
+ */
+export function axisBounds(
+  ctx: PlotContext,
+  view: ZoomView,
+  axis: Axis,
+  limits: AxisZoomLimits | undefined,
+  unlimited: boolean,
+): AxisBounds {
+  const scale = axis === 'x' ? ctx.x : ctx.y;
+  const current = axis === 'x' ? view.x : view.y;
+  const span = spanOf(ctx, axis);
+  // Base pixel of a data value: its position on the full view, whatever the zoom.
+  const base = (value: Primitive): number => (scale.position(value) - current.t) / current.k;
+
+  const domain = scale.domain;
+  const first = domain[0];
+  const last = domain[domain.length - 1];
+  const low = limits?.min ?? (unlimited ? undefined : first);
+  const high = limits?.max ?? (unlimited ? undefined : last);
+  const a = low === undefined ? -Infinity : base(low);
+  const b = high === undefined ? Infinity : base(high);
+  const pL = Math.min(a, b);
+  const pH = Math.max(a, b);
+  const size = pH - pL;
+  let kMin = Number.isFinite(size) && size > 0 ? span / size : UNLIMITED_MIN_K;
+  let kMax = MAX_ZOOM;
+
+  // Span limits, in data units: only meaningful where the scale is linear in value.
+  if (
+    first !== undefined &&
+    last !== undefined &&
+    (scale.kind === 'linear' || scale.kind === 'time')
+  ) {
+    const fullPixels = Math.abs(base(last) - base(first));
+    const dataFull = Math.abs(numberOf(last) - numberOf(first));
+    if (fullPixels > 0 && dataFull > 0) {
+      // Data units visible at a zoom factor of 1; the width shrinks as 1 / k.
+      const widthAtOne = (dataFull * span) / fullPixels;
+      if (limits?.minSpan !== undefined) kMax = Math.min(kMax, widthAtOne / limits.minSpan);
+      if (limits?.maxSpan !== undefined) kMin = Math.max(kMin, widthAtOne / limits.maxSpan);
+    }
+  }
+  if (kMax < kMin) kMax = kMin;
+  return { span, pL, pH, kMin, kMax };
+}
+
+/** Check the limits of a chart before drawing it. */
+export function validateZoomLimits(zoom: ZoomSpec | undefined): void {
+  for (const limits of [zoom?.x, zoom?.y]) {
+    if (limits === undefined) continue;
+    if (limits.minSpan !== undefined && !(limits.minSpan > 0)) {
+      throw new RangeError('plot: zoom limits minSpan must be positive');
+    }
+    if (limits.maxSpan !== undefined && !(limits.maxSpan > 0)) {
+      throw new RangeError('plot: zoom limits maxSpan must be positive');
+    }
+    if (
+      limits.minSpan !== undefined &&
+      limits.maxSpan !== undefined &&
+      limits.maxSpan < limits.minSpan
+    ) {
+      throw new RangeError('plot: zoom limits maxSpan must not be below minSpan');
+    }
+  }
+}
+
+/** A number from a data value: dates become their time, numbers stay numbers. */
+function numberOf(value: Primitive): number {
+  return value instanceof Date ? value.getTime() : Number(value);
+}
+
+/** The bounds of `axis` for the current view and zoom options. */
+export function boundsFor(
+  ctx: PlotContext,
+  view: ZoomView,
+  zoom: ZoomSpec,
+  axis: Axis,
+): AxisBounds {
+  return axisBounds(
+    ctx,
+    view,
+    axis,
+    axis === 'x' ? zoom.x : zoom.y,
+    zoom.isUnlimitedZoomOut === true,
+  );
+}
+
+/**
+ * Keep the view in its bounds: first the zoom factor, then the offset, so the
+ * visible base pixels stay within `pL` and `pH`.
  */
 export function clampAxis(
   view: AxisView,
   span: number,
-  range: ZoomRange = DEFAULT_ZOOM_RANGE,
+  bounds: AxisBounds = defaultBounds(span),
 ): AxisView {
-  const k = Math.min(range.max, Math.max(range.min, view.k));
-  const [lo, hi] = k >= 1 ? [span * (1 - k), 0] : [-k * span, span];
+  const k = Math.min(bounds.kMax, Math.max(bounds.kMin, view.k));
+  const lo = Number.isFinite(bounds.pH) ? bounds.span - k * bounds.pH : -Infinity;
+  const hi = Number.isFinite(bounds.pL) ? 0 - k * bounds.pL : Infinity;
   const t = Math.min(hi, Math.max(lo, view.t));
   return { k, t };
 }
@@ -105,21 +203,21 @@ export function zoomAxis(
   factor: number,
   pivot: number,
   span: number,
-  range: ZoomRange = DEFAULT_ZOOM_RANGE,
+  bounds: AxisBounds = defaultBounds(span),
 ): AxisView {
-  const k = Math.min(range.max, Math.max(range.min, view.k * factor));
+  const k = Math.min(bounds.kMax, Math.max(bounds.kMin, view.k * factor));
   if (k === view.k) return view;
-  return clampAxis({ k, t: pivot - (pivot - view.t) * (k / view.k) }, span, range);
+  return clampAxis({ k, t: pivot - (pivot - view.t) * (k / view.k) }, span, bounds);
 }
 
-/** Shift an axis by `delta` pixels, within the clamped range. */
+/** Shift an axis by `delta` pixels, within its bounds. */
 export function panAxis(
   view: AxisView,
   delta: number,
   span: number,
-  range: ZoomRange = DEFAULT_ZOOM_RANGE,
+  bounds: AxisBounds = defaultBounds(span),
 ): AxisView {
-  return clampAxis({ k: view.k, t: view.t + delta }, span, range);
+  return clampAxis({ k: view.k, t: view.t + delta }, span, bounds);
 }
 
 /**
@@ -131,11 +229,11 @@ export function zoomToSpan(
   a: number,
   b: number,
   span: number,
-  range: ZoomRange = DEFAULT_ZOOM_RANGE,
+  bounds: AxisBounds = defaultBounds(span),
 ): AxisView {
   const base0 = (a - view.t) / view.k;
   const k = (span * view.k) / (b - a);
-  return clampAxis({ k, t: -k * base0 }, span, range);
+  return clampAxis({ k, t: -k * base0 }, span, bounds);
 }
 
 /** Zoom factor of a wheel event: above 1 when the wheel moves up (negative delta). */
@@ -162,8 +260,8 @@ export function drawZoomable(
     sessions.delete(svg);
     return draw(spec, IDENTITY_VIEW);
   }
-  // Reject a bad range when the chart is drawn, not at the first wheel event.
-  zoomRangeOf(spec.zoom);
+  // Reject bad limits when the chart is drawn, not at the first wheel event.
+  validateZoomLimits(spec.zoom);
   const session: Session = sessions.get(svg) ?? { spec, view: IDENTITY_VIEW, draw };
   session.spec = spec;
   session.draw = draw;
@@ -292,10 +390,10 @@ function onWheel(svg: SVGSVGElement, e: WheelEvent): void {
     ? wheelFactor(e.deltaY, e.deltaMode, PINCH_SENSITIVITY)
     : wheelFactor(e.deltaY, e.deltaMode);
   let view = active.session.view;
-  const range = zoomRangeOf(zoom);
   for (const axis of targets) {
     const span = spanOf(active.ctx, axis);
-    view = withAxis(view, axis, zoomAxis(view[axis], factor, pivotOf(p, axis, span), span, range));
+    const bounds = boundsFor(active.ctx, view, zoom, axis);
+    view = withAxis(view, axis, zoomAxis(view[axis], factor, pivotOf(p, axis, span), span, bounds));
   }
   redraw(active, view);
 }
@@ -359,10 +457,10 @@ function startPan(svg: SVGSVGElement, active: Active, e: PointerEvent): void {
     lastY = m.clientY;
     let view = current.session.view;
     const zoom: ZoomSpec = current.session.spec.zoom ?? {};
-    const range = zoomRangeOf(zoom);
     for (const axis of zoomableAxes(current.ctx, zoom)) {
       const span = spanOf(current.ctx, axis);
-      view = withAxis(view, axis, panAxis(view[axis], delta[axis], span, range));
+      const bounds = boundsFor(current.ctx, view, zoom, axis);
+      view = withAxis(view, axis, panAxis(view[axis], delta[axis], span, bounds));
     }
     redraw(current, view);
   }
@@ -449,12 +547,12 @@ function zoomToRect(active: Active, rect: Rect): void {
   const zoom: ZoomSpec = active.session.spec.zoom ?? {};
   let view = active.session.view;
   let changed = false;
-  const range = zoomRangeOf(zoom);
   for (const axis of zoomableAxes(active.ctx, zoom)) {
     const a = axis === 'x' ? rect.x0 : rect.y0;
     const b = axis === 'x' ? rect.x1 : rect.y1;
     if (b - a < MIN_SELECTION) continue;
-    view = withAxis(view, axis, zoomToSpan(view[axis], a, b, spanOf(active.ctx, axis), range));
+    const bounds = boundsFor(active.ctx, view, zoom, axis);
+    view = withAxis(view, axis, zoomToSpan(view[axis], a, b, spanOf(active.ctx, axis), bounds));
     changed = true;
   }
   if (changed) redraw(active, view);
