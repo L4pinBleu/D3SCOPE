@@ -10,7 +10,16 @@ import { cssVar, LIGHT_THEME } from '../theme/index.js';
 import { createColorScale } from './color.js';
 import { gridX, gridY } from './grid.js';
 import { createAxisScale, inferKind, tickValues } from './scales.js';
-import type { AxisSpec, Mark, PlotContext, PlotMargin, PlotSpec, Primitive } from './types.js';
+import { drawZoomable, viewRange } from './zoom.js';
+import type {
+  AxisSpec,
+  Mark,
+  PlotContext,
+  PlotMargin,
+  PlotSpec,
+  Primitive,
+  ZoomView,
+} from './types.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const DEFAULT_MARGIN: PlotMargin = { top: 16, right: 16, bottom: 28, left: 40 };
@@ -27,9 +36,16 @@ let clipCounter = 0;
 
 /**
  * Draw `spec` into `svg`. Any previous content of the SVG is replaced, so the
- * function is safe to call again on every data update.
+ * function is safe to call again on every data update. With `zoom.isEnabled`,
+ * the wheel, drag and double-click change the view, and the view is kept
+ * across calls.
  */
 export function plot(svg: SVGSVGElement, spec: PlotSpec): PlotContext {
+  return drawZoomable(svg, spec, (s, view) => drawPlot(svg, s, view));
+}
+
+/** Draw one frame of `spec` with the given zoom view. */
+function drawPlot(svg: SVGSVGElement, spec: PlotSpec, view: ZoomView): PlotContext {
   if (!(spec.width > 0) || !(spec.height > 0)) {
     throw new RangeError('plot: width and height must be positive');
   }
@@ -48,8 +64,13 @@ export function plot(svg: SVGSVGElement, spec: PlotSpec): PlotContext {
   const yValues = collect(spec.marks, 'yValues');
   const xKind = xSpec.type ?? inferKind(xValues.length > 0 ? xValues : (xSpec.domain ?? []));
   const yKind = ySpec.type ?? inferKind(yValues);
-  const x = createAxisScale(xKind, xValues, [0, innerWidth], xSpec);
-  const y = createAxisScale(yKind, yValues, [innerHeight, 0], ySpec);
+  // Band axes have no zoom: their categories keep the full range.
+  const xRange: [number, number] =
+    xKind === 'band' ? [0, innerWidth] : viewRange(view.x, [0, innerWidth]);
+  const yRange: [number, number] =
+    yKind === 'band' ? [innerHeight, 0] : viewRange(view.y, [innerHeight, 0]);
+  const x = createAxisScale(xKind, xValues, xRange, xSpec);
+  const y = createAxisScale(yKind, yValues, yRange, ySpec);
   const outOfDomain = { x: countOutside(xValues, xSpec), y: countOutside(yValues, ySpec) };
 
   svg.replaceChildren();

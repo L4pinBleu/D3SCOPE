@@ -89,6 +89,8 @@ export interface PlotSpec {
   title?: string;
   /** Optional subtitle, drawn below the title (or above the plot area when there is no title). */
   subtitle?: string;
+  /** Zoom and pan of the plot area. Off unless `isEnabled` is `true`. */
+  zoom?: ZoomSpec;
   /** Marks, drawn in this order (later marks are drawn on top). */
   marks: readonly Mark[];
 }
@@ -163,4 +165,40 @@ export interface Mark {
   yValues?(): readonly Primitive[];
   colorValues?(): readonly string[];
   render(ctx: PlotContext): void;
+}
+
+/** Axes that zoom. */
+export type ZoomAxes = 'x' | 'y' | 'both';
+
+/**
+ * How the wheel acts when several axes can zoom.
+ * - `independent`: a wheel over an axis zooms that axis only; a wheel over the plot zooms every zoomable axis.
+ * - `joint`: a wheel zooms every zoomable axis by the same factor, so their ratio is kept.
+ */
+export type ZoomLink = 'independent' | 'joint';
+
+/** Zoom and pan of the plot area. */
+export interface ZoomSpec {
+  /** Turn zoom and pan on. Default: `false`. */
+  isEnabled?: boolean;
+  /** Axes that zoom. Default: `both`. Band (category) axes never zoom. */
+  axes?: ZoomAxes;
+  /** Wheel behaviour across axes. Default: `independent`. */
+  link?: ZoomLink;
+  /** Zoom with the mouse wheel. Default: `true`. */
+  isWheelEnabled?: boolean;
+  /** Pan by dragging the plot area. Default: `true`. */
+  isDragEnabled?: boolean;
+}
+
+/** View of one axis: a base pixel `p` is drawn at `k * p + t`, with `k >= 1` and `t <= 0`. */
+export interface AxisView {
+  readonly k: number;
+  readonly t: number;
+}
+
+/** View of the plot: one transform per axis. The full view is `k = 1`, `t = 0` on both. */
+export interface ZoomView {
+  readonly x: AxisView;
+  readonly y: AxisView;
 }

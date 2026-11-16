@@ -8,6 +8,10 @@ All notable changes to `@d3scope/core` are listed here. The format follows
 
 ### Added
 
+- Zoom and pan of the plot area: the `zoom` option of `plot()` (off by default)
+  enables the mouse wheel, drag and double-click reset. Zoom runs per axis
+  (`axes`) and per link (`link`: `independent` or `joint`). Helpers
+  `getZoomView` and `resetZoom`.
 - Plugin API 1.3.0: the range marks `rangeX` and `rangeY` (specification bands)
   are re-exported by `@d3scope/core/plugin`.
 - Plugin API 1.2.0: `plot()`, the built-in marks and the plot types are
