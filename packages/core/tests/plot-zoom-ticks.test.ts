@@ -27,9 +27,7 @@ function wheel(svg: SVGSVGElement, x: number, y: number, deltaY: number): void {
 }
 
 function labelsOf(svg: SVGSVGElement, axis: 'x' | 'y'): string[] {
-  return Array.from(svg.querySelectorAll(`.d3s-axis-${axis} .tick text`)).map(
-    (t) => t.textContent ?? '',
-  );
+  return Array.from(svg.querySelectorAll(`.d3s-axis-${axis} .tick text`)).map((t) => t.textContent);
 }
 
 describe('ticks of a zoomed axis', () => {
