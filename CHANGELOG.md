@@ -23,6 +23,8 @@ All notable changes to `@d3scope/core` are listed here. The format follows
   visible plot, with the axis line stopped at its edges.
 - Zoomed axes take their ticks from the visible part, so a zoomed axis keeps its
   labels, and their format follows the visible values.
+- A fixed step that leaves fewer than two ticks in a zoomed window gives way to the
+  automatic ticks of that window.
 - Plugin API 1.3.0: the range marks `rangeX` and `rangeY` (specification bands)
   are re-exported by `@d3scope/core/plugin`.
 - Plugin API 1.2.0: `plot()`, the built-in marks and the plot types are

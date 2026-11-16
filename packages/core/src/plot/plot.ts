@@ -297,6 +297,13 @@ function drawAxis(
   const span = axis === 'x' ? ctx.innerWidth : ctx.innerHeight;
   const part = visiblePart(scale, span);
   const count = options.tickCount;
+  const isInView = (value: Primitive): boolean => {
+    const p = scale.position(value);
+    return p >= -VISIBLE_EPSILON && p <= span + VISIBLE_EPSILON;
+  };
+  // Automatic ticks of the visible part (the whole axis when not zoomed).
+  const automatic = (): Primitive[] =>
+    (part?.copy ?? (d3Scale as unknown as ContinuousD3)).ticks(count) as Primitive[];
   let all: Primitive[];
   if (spec.minorTicks === true) {
     all = tickValues(scale, spec);
@@ -306,12 +313,12 @@ function drawAxis(
         ? stepValues(part.lo, part.hi, spec.step)
         : tickValues(scale, spec);
   } else {
-    all = (part?.copy ?? (d3Scale as unknown as ContinuousD3)).ticks(count) as Primitive[];
+    all = automatic();
   }
-  const inView = all.filter((value) => {
-    const p = scale.position(value);
-    return p >= -VISIBLE_EPSILON && p <= span + VISIBLE_EPSILON;
-  });
+  // A fixed step (or minor ticks) can leave fewer than two ticks in a zoomed window,
+  // e.g. a 10 step over a window of 3. Then the automatic ticks of the window are used.
+  if (part !== undefined && all.filter(isInView).length < 2) all = automatic();
+  const inView = all.filter(isInView);
   const format =
     spec.tickFormat ??
     (part !== undefined
