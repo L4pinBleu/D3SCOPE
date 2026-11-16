@@ -191,6 +191,14 @@ export interface ZoomSpec {
   axes?: ZoomAxes;
   /** Wheel behaviour across axes. Default: `independent`. */
   link?: ZoomLink;
+  /**
+   * Smallest zoom factor, where 1 is the full view. Below 1 the view zooms out past the
+   * data, down to this factor: a very small value gives an almost unlimited zoom out.
+   * Default: `1` (no zoom out beyond the full view).
+   */
+  minZoom?: number;
+  /** Largest zoom factor. Default: `1000`. */
+  maxZoom?: number;
   /** Zoom with the mouse wheel. Default: `true`. */
   isWheelEnabled?: boolean;
   /** Pan by dragging with the left button. Default: `true`. */

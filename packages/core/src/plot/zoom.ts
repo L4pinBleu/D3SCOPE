@@ -61,33 +61,81 @@ export function viewRange(view: AxisView, base: readonly [number, number]): [num
   return [view.k * base[0] + view.t, view.k * base[1] + view.t];
 }
 
-/** Keep the data covering the plot: `t` stays within `[span * (1 - k), 0]`. */
-export function clampAxis(view: AxisView, span: number): AxisView {
-  const k = Math.min(MAX_ZOOM, Math.max(1, view.k));
-  const t = Math.min(0, Math.max(span * (1 - k), view.t));
+/** Smallest and largest zoom factor of an axis. */
+export interface ZoomRange {
+  readonly min: number;
+  readonly max: number;
+}
+
+/** Default range: no zoom out beyond the full view, and up to `MAX_ZOOM` in. */
+export const DEFAULT_ZOOM_RANGE: ZoomRange = { min: 1, max: MAX_ZOOM };
+
+/**
+ * The zoom range of a chart. A `minZoom` below 1 allows zooming out past the full
+ * view, down to that factor (a very small value gives an almost unlimited zoom out).
+ */
+export function zoomRangeOf(zoom: ZoomSpec): ZoomRange {
+  const min = zoom.minZoom ?? DEFAULT_ZOOM_RANGE.min;
+  const max = zoom.maxZoom ?? DEFAULT_ZOOM_RANGE.max;
+  if (!(min > 0) || !(max >= min)) {
+    throw new RangeError('plot: zoom.minZoom must be positive and no larger than zoom.maxZoom');
+  }
+  return { min, max };
+}
+
+/**
+ * Keep the view in bounds. At a factor of 1 or more the data covers the plot:
+ * `t` stays within `[span * (1 - k), 0]`. Below 1 (zoomed out) the data only has to
+ * overlap the plot: `t` stays within `[-k * span, span]`.
+ */
+export function clampAxis(
+  view: AxisView,
+  span: number,
+  range: ZoomRange = DEFAULT_ZOOM_RANGE,
+): AxisView {
+  const k = Math.min(range.max, Math.max(range.min, view.k));
+  const [lo, hi] = k >= 1 ? [span * (1 - k), 0] : [-k * span, span];
+  const t = Math.min(hi, Math.max(lo, view.t));
   return { k, t };
 }
 
 /** Multiply the zoom of an axis by `factor`, keeping the pixel `pivot` in place. */
-export function zoomAxis(view: AxisView, factor: number, pivot: number, span: number): AxisView {
-  const k = Math.min(MAX_ZOOM, Math.max(1, view.k * factor));
+export function zoomAxis(
+  view: AxisView,
+  factor: number,
+  pivot: number,
+  span: number,
+  range: ZoomRange = DEFAULT_ZOOM_RANGE,
+): AxisView {
+  const k = Math.min(range.max, Math.max(range.min, view.k * factor));
   if (k === view.k) return view;
-  return clampAxis({ k, t: pivot - (pivot - view.t) * (k / view.k) }, span);
+  return clampAxis({ k, t: pivot - (pivot - view.t) * (k / view.k) }, span, range);
 }
 
 /** Shift an axis by `delta` pixels, within the clamped range. */
-export function panAxis(view: AxisView, delta: number, span: number): AxisView {
-  return clampAxis({ k: view.k, t: view.t + delta }, span);
+export function panAxis(
+  view: AxisView,
+  delta: number,
+  span: number,
+  range: ZoomRange = DEFAULT_ZOOM_RANGE,
+): AxisView {
+  return clampAxis({ k: view.k, t: view.t + delta }, span, range);
 }
 
 /**
  * The view that spreads the pixels `a` to `b` of the current view over the whole
  * axis of length `span`.
  */
-export function zoomToSpan(view: AxisView, a: number, b: number, span: number): AxisView {
+export function zoomToSpan(
+  view: AxisView,
+  a: number,
+  b: number,
+  span: number,
+  range: ZoomRange = DEFAULT_ZOOM_RANGE,
+): AxisView {
   const base0 = (a - view.t) / view.k;
   const k = (span * view.k) / (b - a);
-  return clampAxis({ k, t: -k * base0 }, span);
+  return clampAxis({ k, t: -k * base0 }, span, range);
 }
 
 /** Zoom factor of a wheel event: above 1 when the wheel moves up (negative delta). */
@@ -114,6 +162,8 @@ export function drawZoomable(
     sessions.delete(svg);
     return draw(spec, IDENTITY_VIEW);
   }
+  // Reject a bad range when the chart is drawn, not at the first wheel event.
+  zoomRangeOf(spec.zoom);
   const session: Session = sessions.get(svg) ?? { spec, view: IDENTITY_VIEW, draw };
   session.spec = spec;
   session.draw = draw;
@@ -242,9 +292,10 @@ function onWheel(svg: SVGSVGElement, e: WheelEvent): void {
     ? wheelFactor(e.deltaY, e.deltaMode, PINCH_SENSITIVITY)
     : wheelFactor(e.deltaY, e.deltaMode);
   let view = active.session.view;
+  const range = zoomRangeOf(zoom);
   for (const axis of targets) {
     const span = spanOf(active.ctx, axis);
-    view = withAxis(view, axis, zoomAxis(view[axis], factor, pivotOf(p, axis, span), span));
+    view = withAxis(view, axis, zoomAxis(view[axis], factor, pivotOf(p, axis, span), span, range));
   }
   redraw(active, view);
 }
@@ -308,9 +359,10 @@ function startPan(svg: SVGSVGElement, active: Active, e: PointerEvent): void {
     lastY = m.clientY;
     let view = current.session.view;
     const zoom: ZoomSpec = current.session.spec.zoom ?? {};
+    const range = zoomRangeOf(zoom);
     for (const axis of zoomableAxes(current.ctx, zoom)) {
       const span = spanOf(current.ctx, axis);
-      view = withAxis(view, axis, panAxis(view[axis], delta[axis], span));
+      view = withAxis(view, axis, panAxis(view[axis], delta[axis], span, range));
     }
     redraw(current, view);
   }
@@ -397,11 +449,12 @@ function zoomToRect(active: Active, rect: Rect): void {
   const zoom: ZoomSpec = active.session.spec.zoom ?? {};
   let view = active.session.view;
   let changed = false;
+  const range = zoomRangeOf(zoom);
   for (const axis of zoomableAxes(active.ctx, zoom)) {
     const a = axis === 'x' ? rect.x0 : rect.y0;
     const b = axis === 'x' ? rect.x1 : rect.y1;
     if (b - a < MIN_SELECTION) continue;
-    view = withAxis(view, axis, zoomToSpan(view[axis], a, b, spanOf(active.ctx, axis)));
+    view = withAxis(view, axis, zoomToSpan(view[axis], a, b, spanOf(active.ctx, axis), range));
     changed = true;
   }
   if (changed) redraw(active, view);
