@@ -137,6 +137,7 @@ function drawPlot(svg: SVGSVGElement, spec: PlotSpec, view: ZoomView): PlotConte
     );
   }
   drawTitle(svg, spec);
+  spec.onRender?.(ctx);
   return ctx;
 }
 

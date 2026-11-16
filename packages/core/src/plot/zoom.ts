@@ -5,8 +5,11 @@
  * `p` of the axis is drawn at `k * p + t`, with `k >= 1` and `t <= 0`. Clamping
  * keeps the data covering the plot area, so the view never shows empty space.
  *
- * `plot()` keeps one session per SVG. Its view survives data updates, and the
- * wheel, drag and double-click handlers redraw with the latest spec.
+ * Mouse: the wheel zooms around the cursor, the left button drags to pan, the
+ * right button drags a rectangle and zooms to it, and a double-click resets.
+ *
+ * `plot()` keeps one session per SVG. Its view survives data updates, and every
+ * handler redraws with the latest spec.
  */
 import type { AxisView, PlotContext, PlotSpec, ZoomSpec, ZoomView } from './types.js';
 
@@ -14,6 +17,9 @@ import type { AxisView, PlotContext, PlotSpec, ZoomSpec, ZoomView } from './type
 export const MAX_ZOOM = 1000;
 /** Wheel sensitivity: a delta of 100 (one notch) scales the view by about 16 %. */
 const WHEEL_SENSITIVITY = 0.0015;
+/** Smallest selection, in pixels, that zooms an axis. Smaller drags are ignored. */
+const MIN_SELECTION = 4;
+const SVG_NS = 'http://www.w3.org/2000/svg';
 
 export const IDENTITY_AXIS: AxisView = { k: 1, t: 0 };
 export const IDENTITY_VIEW: ZoomView = { x: IDENTITY_AXIS, y: IDENTITY_AXIS };
@@ -24,12 +30,20 @@ interface Point {
   readonly x: number;
   readonly y: number;
 }
+interface Rect {
+  readonly x0: number;
+  readonly x1: number;
+  readonly y0: number;
+  readonly y1: number;
+}
 
 interface Session {
   spec: PlotSpec;
   view: ZoomView;
   draw: (spec: PlotSpec, view: ZoomView) => PlotContext;
   ctx?: PlotContext;
+  /** What the pointer is doing, so the hover cursor does not override it. */
+  busy?: 'pan' | 'select' | undefined;
 }
 
 interface Active {
@@ -64,6 +78,16 @@ export function panAxis(view: AxisView, delta: number, span: number): AxisView {
   return clampAxis({ k: view.k, t: view.t + delta }, span);
 }
 
+/**
+ * The view that spreads the pixels `a` to `b` of the current view over the whole
+ * axis of length `span`.
+ */
+export function zoomToSpan(view: AxisView, a: number, b: number, span: number): AxisView {
+  const base0 = (a - view.t) / view.k;
+  const k = (span * view.k) / (b - a);
+  return clampAxis({ k, t: -k * base0 }, span);
+}
+
 /** Zoom factor of a wheel event: above 1 when the wheel moves up (negative delta). */
 export function wheelFactor(deltaY: number, deltaMode: number): number {
   const pixels = deltaMode === 1 ? deltaY * 16 : deltaMode === 2 ? deltaY * 400 : deltaY;
@@ -80,6 +104,7 @@ export function drawZoomable(
   draw: (spec: PlotSpec, view: ZoomView) => PlotContext,
 ): PlotContext {
   if (spec.zoom?.isEnabled !== true) {
+    if (sessions.has(svg)) svg.style.cursor = '';
     sessions.delete(svg);
     return draw(spec, IDENTITY_VIEW);
   }
@@ -129,6 +154,12 @@ function listen(svg: SVGSVGElement): void {
   );
   svg.addEventListener('pointerdown', (e) => {
     onPointerDown(svg, e);
+  });
+  svg.addEventListener('pointermove', (e) => {
+    onHover(svg, e);
+  });
+  svg.addEventListener('contextmenu', (e) => {
+    onContextMenu(svg, e);
   });
   svg.addEventListener('dblclick', (e) => {
     onDoubleClick(svg, e);
@@ -209,17 +240,46 @@ function onWheel(svg: SVGSVGElement, e: WheelEvent): void {
   redraw(active, view);
 }
 
-function onPointerDown(svg: SVGSVGElement, e: PointerEvent): void {
-  if (e.button !== 0) return;
+/** Grab cursor over the plot area, the default cursor elsewhere. */
+function onHover(svg: SVGSVGElement, e: PointerEvent): void {
   const active = activeSession(svg);
-  if (!active || active.session.spec.zoom?.isDragEnabled === false) return;
-  if (regionOf(plotPoint(svg, active, e.clientX, e.clientY), active.ctx) !== 'plot') return;
+  if (!active || active.session.busy) return;
+  const inPlot = regionOf(plotPoint(svg, active, e.clientX, e.clientY), active.ctx) === 'plot';
+  svg.style.cursor = inPlot ? 'grab' : '';
+}
+
+/** Keep the browser menu away from the right-button selection. */
+function onContextMenu(svg: SVGSVGElement, e: MouseEvent): void {
+  const active = activeSession(svg);
+  if (!active) return;
+  if (regionOf(plotPoint(svg, active, e.clientX, e.clientY), active.ctx) === 'plot') {
+    e.preventDefault();
+  }
+}
+
+function onPointerDown(svg: SVGSVGElement, e: PointerEvent): void {
+  const active = activeSession(svg);
+  if (!active) return;
+  const zoom: ZoomSpec = active.session.spec.zoom ?? {};
+  const p = plotPoint(svg, active, e.clientX, e.clientY);
+  if (regionOf(p, active.ctx) !== 'plot') return;
+  if (e.button === 0 && zoom.isDragEnabled !== false) startPan(svg, active, e);
+  if (e.button === 2 && zoom.isSelectionEnabled !== false) startSelection(svg, active, p);
+}
+
+/** Left button: move the view with the pointer. */
+function startPan(svg: SVGSVGElement, active: Active, e: PointerEvent): void {
+  const { session } = active;
+  session.busy = 'pan';
+  svg.style.cursor = 'grabbing';
   let lastX = e.clientX;
   let lastY = e.clientY;
 
   function stop(): void {
     window.removeEventListener('pointermove', onMove);
     window.removeEventListener('pointerup', stop);
+    session.busy = undefined;
+    svg.style.cursor = 'grab';
   }
 
   function onMove(m: PointerEvent): void {
@@ -243,6 +303,94 @@ function onPointerDown(svg: SVGSVGElement, e: PointerEvent): void {
 
   window.addEventListener('pointermove', onMove);
   window.addEventListener('pointerup', stop);
+}
+
+/** Right button: draw a rectangle, then zoom to it on release. */
+function startSelection(svg: SVGSVGElement, active: Active, start: Point): void {
+  const { session, ctx } = active;
+  session.busy = 'select';
+  svg.style.cursor = 'crosshair';
+  const layer = document.createElementNS(SVG_NS, 'g');
+  layer.setAttribute('class', 'd3s-zoom-selection');
+  layer.setAttribute(
+    'transform',
+    `translate(${String(ctx.margin.left)},${String(ctx.margin.top)})`,
+  );
+  const box = document.createElementNS(SVG_NS, 'rect');
+  box.setAttribute('fill', '#3366dd');
+  box.setAttribute('fill-opacity', '0.12');
+  box.setAttribute('stroke', '#3366dd');
+  box.setAttribute('stroke-dasharray', '4 3');
+  layer.appendChild(box);
+  svg.appendChild(layer);
+  let end = start;
+
+  function paint(): void {
+    const rect = toRect(start, end);
+    box.setAttribute('x', String(rect.x0));
+    box.setAttribute('y', String(rect.y0));
+    box.setAttribute('width', String(rect.x1 - rect.x0));
+    box.setAttribute('height', String(rect.y1 - rect.y0));
+  }
+
+  function stop(): void {
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    layer.remove();
+    session.busy = undefined;
+    svg.style.cursor = '';
+  }
+
+  function onMove(m: PointerEvent): void {
+    const current = activeSession(svg);
+    if (!current) {
+      stop();
+      return;
+    }
+    end = clampPoint(plotPoint(svg, current, m.clientX, m.clientY), ctx);
+    paint();
+  }
+
+  function onUp(): void {
+    stop();
+    const current = activeSession(svg);
+    if (current) zoomToRect(current, toRect(start, end));
+  }
+
+  paint();
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+}
+
+function toRect(a: Point, b: Point): Rect {
+  return {
+    x0: Math.min(a.x, b.x),
+    x1: Math.max(a.x, b.x),
+    y0: Math.min(a.y, b.y),
+    y1: Math.max(a.y, b.y),
+  };
+}
+
+function clampPoint(p: Point, ctx: PlotContext): Point {
+  return {
+    x: Math.min(ctx.innerWidth, Math.max(0, p.x)),
+    y: Math.min(ctx.innerHeight, Math.max(0, p.y)),
+  };
+}
+
+/** Zoom each zoomable axis to the rectangle; an axis with a thin selection stays as it is. */
+function zoomToRect(active: Active, rect: Rect): void {
+  const zoom: ZoomSpec = active.session.spec.zoom ?? {};
+  let view = active.session.view;
+  let changed = false;
+  for (const axis of zoomableAxes(active.ctx, zoom)) {
+    const a = axis === 'x' ? rect.x0 : rect.y0;
+    const b = axis === 'x' ? rect.x1 : rect.y1;
+    if (b - a < MIN_SELECTION) continue;
+    view = withAxis(view, axis, zoomToSpan(view[axis], a, b, spanOf(active.ctx, axis)));
+    changed = true;
+  }
+  if (changed) redraw(active, view);
 }
 
 function onDoubleClick(svg: SVGSVGElement, e: MouseEvent): void {

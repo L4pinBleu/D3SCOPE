@@ -91,6 +91,12 @@ export interface PlotSpec {
   subtitle?: string;
   /** Zoom and pan of the plot area. Off unless `isEnabled` is `true`. */
   zoom?: ZoomSpec;
+  /**
+   * Called after every draw, including the redraws of a zoom, once the built-in
+   * layers are in place. Use it for decorations that `plot()` does not draw: the
+   * SVG is cleared on each draw, so anything added outside this hook is lost.
+   */
+  onRender?: (ctx: PlotContext) => void;
   /** Marks, drawn in this order (later marks are drawn on top). */
   marks: readonly Mark[];
 }
@@ -187,8 +193,10 @@ export interface ZoomSpec {
   link?: ZoomLink;
   /** Zoom with the mouse wheel. Default: `true`. */
   isWheelEnabled?: boolean;
-  /** Pan by dragging the plot area. Default: `true`. */
+  /** Pan by dragging with the left button. Default: `true`. */
   isDragEnabled?: boolean;
+  /** Zoom to a zone drawn by dragging with the right button. Default: `true`. */
+  isSelectionEnabled?: boolean;
 }
 
 /** View of one axis: a base pixel `p` is drawn at `k * p + t`, with `k >= 1` and `t <= 0`. */
