@@ -17,6 +17,8 @@ import type { AxisView, PlotContext, PlotSpec, ZoomSpec, ZoomView } from './type
 export const MAX_ZOOM = 1000;
 /** Wheel sensitivity: a delta of 100 (one notch) scales the view by about 16 %. */
 const WHEEL_SENSITIVITY = 0.0015;
+/** Pinch sensitivity (trackpad, wheel with ctrlKey): a pinch zooms faster than a scroll. */
+const PINCH_SENSITIVITY = 0.01;
 /** Smallest selection, in pixels, that zooms an axis. Smaller drags are ignored. */
 const MIN_SELECTION = 4;
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -89,9 +91,13 @@ export function zoomToSpan(view: AxisView, a: number, b: number, span: number): 
 }
 
 /** Zoom factor of a wheel event: above 1 when the wheel moves up (negative delta). */
-export function wheelFactor(deltaY: number, deltaMode: number): number {
+export function wheelFactor(
+  deltaY: number,
+  deltaMode: number,
+  sensitivity: number = WHEEL_SENSITIVITY,
+): number {
   const pixels = deltaMode === 1 ? deltaY * 16 : deltaMode === 2 ? deltaY * 400 : deltaY;
-  return Math.exp(-pixels * WHEEL_SENSITIVITY);
+  return Math.exp(-pixels * sensitivity);
 }
 
 /**
@@ -231,7 +237,10 @@ function onWheel(svg: SVGSVGElement, e: WheelEvent): void {
       : axes.filter((axis) => axis === (region === 'x-axis' ? 'x' : 'y'));
   if (targets.length === 0) return;
   e.preventDefault();
-  const factor = wheelFactor(e.deltaY, e.deltaMode);
+  // A trackpad pinch arrives as a wheel event with ctrlKey: it zooms faster per event.
+  const factor = e.ctrlKey
+    ? wheelFactor(e.deltaY, e.deltaMode, PINCH_SENSITIVITY)
+    : wheelFactor(e.deltaY, e.deltaMode);
   let view = active.session.view;
   for (const axis of targets) {
     const span = spanOf(active.ctx, axis);
@@ -263,8 +272,13 @@ function onPointerDown(svg: SVGSVGElement, e: PointerEvent): void {
   const zoom: ZoomSpec = active.session.spec.zoom ?? {};
   const p = plotPoint(svg, active, e.clientX, e.clientY);
   if (regionOf(p, active.ctx) !== 'plot') return;
-  if (e.button === 0 && zoom.isDragEnabled !== false) startPan(svg, active, e);
-  if (e.button === 2 && zoom.isSelectionEnabled !== false) startSelection(svg, active, p);
+  // Selection: right button, or left button with Shift or Ctrl (no right button on a trackpad).
+  const selecting = e.button === 2 || (e.button === 0 && (e.shiftKey || e.ctrlKey));
+  if (selecting) {
+    if (zoom.isSelectionEnabled !== false) startSelection(svg, active, p);
+  } else if (e.button === 0 && zoom.isDragEnabled !== false) {
+    startPan(svg, active, e);
+  }
 }
 
 /** Left button: move the view with the pointer. */

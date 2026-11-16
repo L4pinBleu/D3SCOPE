@@ -195,7 +195,10 @@ export interface ZoomSpec {
   isWheelEnabled?: boolean;
   /** Pan by dragging with the left button. Default: `true`. */
   isDragEnabled?: boolean;
-  /** Zoom to a zone drawn by dragging with the right button. Default: `true`. */
+  /**
+   * Zoom to a zone drawn by dragging with the right button, or with the left button
+   * while Shift or Ctrl is held (for a trackpad). Default: `true`.
+   */
   isSelectionEnabled?: boolean;
 }
 

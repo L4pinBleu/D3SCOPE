@@ -286,18 +286,61 @@ function drawAxis(
       ? { tickFormat: spec.tickFormat as unknown as (v: AxisDomain) => string }
       : {}),
   };
-  if (spec.step === undefined && spec.minorTicks !== true) {
+  if (scale.kind === 'band') {
     renderAxis(group, d3Scale, options);
     return;
   }
-  // A fixed step, or minor ticks on a log axis: give d3-axis the tick values
-  // explicitly, since neither comes out of `axis.ticks(count)`.
+  // Ticks are given explicitly, so the ones outside the visible plot can be
+  // dropped while zoomed. Without zoom every tick is visible and nothing changes.
+  const all =
+    spec.step === undefined && spec.minorTicks !== true
+      ? scale.ticks(options.tickCount)
+      : tickValues(scale, spec);
+  const span = axis === 'x' ? ctx.innerWidth : ctx.innerHeight;
+  const visible = all.filter((value) => {
+    const p = scale.position(value);
+    return p >= -VISIBLE_EPSILON && p <= span + VISIBLE_EPSILON;
+  });
   const generator = createAxis(d3Scale, options);
-  generator.tickValues(tickValues(scale, spec) as unknown as AxisDomain[]);
+  generator.tickValues(visible as unknown as AxisDomain[]);
   select(group)
     .style('color', cssVar('textMuted', LIGHT_THEME.textMuted))
     .style('font-family', cssVar('fontFamily', LIGHT_THEME.fontFamily))
     .call(generator);
+  clampDomainLine(group, side, scale.range, span);
+}
+
+/** Tolerance, in pixels, when a tick is tested against the visible plot. */
+const VISIBLE_EPSILON = 1e-6;
+
+/**
+ * Stop the axis line at the plot's edges. While zoomed, the scale extends past
+ * the plot, and d3 would draw the line past the plot too. The line keeps d3's
+ * shape (tick marks at both ends) between the clamped range ends.
+ */
+function clampDomainLine(
+  group: SVGGElement,
+  side: NonNullable<AxisSpec['position']>,
+  range: readonly [number, number],
+  span: number,
+): void {
+  const domain = group.querySelector('path.domain');
+  if (!domain) return;
+  const clamp = (v: number): number => Math.min(span, Math.max(0, v));
+  const [r0, r1] = range;
+  const c0 = clamp(r0);
+  const c1 = clamp(r1);
+  if (c0 === r0 && c1 === r1) return;
+  const tick = 6;
+  const d =
+    side === 'bottom'
+      ? `M${String(c0)},${String(tick)}V0.5H${String(c1)}V${String(tick)}`
+      : side === 'top'
+        ? `M${String(c0)},${String(-tick)}V0.5H${String(c1)}V${String(-tick)}`
+        : side === 'left'
+          ? `M${String(-tick)},${String(c0)}H0.5V${String(c1)}H${String(-tick)}`
+          : `M${String(tick)},${String(c0)}H0.5V${String(c1)}H${String(tick)}`;
+  domain.setAttribute('d', d);
 }
 
 function appendGroup(parent: SVGGElement, cls: string): SVGGElement {
