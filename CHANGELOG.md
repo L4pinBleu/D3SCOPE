@@ -8,6 +8,23 @@ All notable changes to `@d3scope/core` are listed here. The format follows
 
 ### Added
 
+- Zoom and pan of the plot area: the `zoom` option of `plot()` (off by default)
+  enables the mouse wheel, left-button drag to pan, right-button drag to zoom
+  to a rectangle, and double-click reset. Zoom runs per axis (`axes`) and per
+  link (`link`: `independent` or `joint`). Helpers `getZoomView` and `resetZoom`.
+- `plot()` option `onRender`: called after every draw, including zoom redraws,
+  for decorations that `plot()` does not draw.
+- Zoom limits in data values: `zoom.x` and `zoom.y` bound the visible window (`min`,
+  `max`), and `minSpan` and `maxSpan` bound its width (linear and time axes).
+  `zoom.isUnlimitedZoomOut` lifts the default bound: the view may zoom out without
+  limit.
+- Zoom on a trackpad: Shift or Ctrl with the left button draws the selection, a
+  pinch (wheel with ctrlKey) zooms faster, and the axes draw only the ticks in the
+  visible plot, with the axis line stopped at its edges.
+- Zoomed axes take their ticks from the visible part, so a zoomed axis keeps its
+  labels, and their format follows the visible values.
+- A fixed step that leaves fewer than two ticks in a zoomed window gives way to the
+  automatic ticks of that window.
 - Plugin API 1.3.0: the range marks `rangeX` and `rangeY` (specification bands)
   are re-exported by `@d3scope/core/plugin`.
 - Plugin API 1.2.0: `plot()`, the built-in marks and the plot types are

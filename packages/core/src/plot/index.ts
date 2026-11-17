@@ -1,4 +1,5 @@
 export { countOutside, plot } from './plot.js';
+export { getZoomView, resetZoom } from './zoom.js';
 export { gridX, gridY } from './grid.js';
 export {
   rectX,
@@ -57,4 +58,9 @@ export type {
   PlotSpec,
   Primitive,
   ScaleKind,
+  AxisView,
+  ZoomAxes,
+  ZoomLink,
+  ZoomSpec,
+  ZoomView,
 } from './types.js';

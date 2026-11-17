@@ -4,13 +4,23 @@
  */
 import { select } from 'd3-selection';
 import type { AxisDomain, AxisScale } from 'd3-axis';
-import { createAxis, renderAxis } from '../axes/index.js';
+import { createAxis, defaultTickFormat, renderAxis } from '../axes/index.js';
 import { renderCategoricalLegend, type LegendItem } from '../legends/index.js';
 import { cssVar, LIGHT_THEME } from '../theme/index.js';
 import { createColorScale } from './color.js';
 import { gridX, gridY } from './grid.js';
 import { createAxisScale, inferKind, tickValues } from './scales.js';
-import type { AxisSpec, Mark, PlotContext, PlotMargin, PlotSpec, Primitive } from './types.js';
+import { drawZoomable, viewRange } from './zoom.js';
+import type {
+  AxisSpec,
+  Mark,
+  PlotContext,
+  PlotMargin,
+  PlotSpec,
+  PlotScale,
+  Primitive,
+  ZoomView,
+} from './types.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const DEFAULT_MARGIN: PlotMargin = { top: 16, right: 16, bottom: 28, left: 40 };
@@ -27,9 +37,16 @@ let clipCounter = 0;
 
 /**
  * Draw `spec` into `svg`. Any previous content of the SVG is replaced, so the
- * function is safe to call again on every data update.
+ * function is safe to call again on every data update. With `zoom.isEnabled`,
+ * the wheel, drag and double-click change the view, and the view is kept
+ * across calls.
  */
 export function plot(svg: SVGSVGElement, spec: PlotSpec): PlotContext {
+  return drawZoomable(svg, spec, (s, view) => drawPlot(svg, s, view));
+}
+
+/** Draw one frame of `spec` with the given zoom view. */
+function drawPlot(svg: SVGSVGElement, spec: PlotSpec, view: ZoomView): PlotContext {
   if (!(spec.width > 0) || !(spec.height > 0)) {
     throw new RangeError('plot: width and height must be positive');
   }
@@ -48,8 +65,13 @@ export function plot(svg: SVGSVGElement, spec: PlotSpec): PlotContext {
   const yValues = collect(spec.marks, 'yValues');
   const xKind = xSpec.type ?? inferKind(xValues.length > 0 ? xValues : (xSpec.domain ?? []));
   const yKind = ySpec.type ?? inferKind(yValues);
-  const x = createAxisScale(xKind, xValues, [0, innerWidth], xSpec);
-  const y = createAxisScale(yKind, yValues, [innerHeight, 0], ySpec);
+  // Band axes have no zoom: their categories keep the full range.
+  const xRange: [number, number] =
+    xKind === 'band' ? [0, innerWidth] : viewRange(view.x, [0, innerWidth]);
+  const yRange: [number, number] =
+    yKind === 'band' ? [innerHeight, 0] : viewRange(view.y, [innerHeight, 0]);
+  const x = createAxisScale(xKind, xValues, xRange, xSpec);
+  const y = createAxisScale(yKind, yValues, yRange, ySpec);
   const outOfDomain = { x: countOutside(xValues, xSpec), y: countOutside(yValues, ySpec) };
 
   svg.replaceChildren();
@@ -116,6 +138,7 @@ export function plot(svg: SVGSVGElement, spec: PlotSpec): PlotContext {
     );
   }
   drawTitle(svg, spec);
+  spec.onRender?.(ctx);
   return ctx;
 }
 
@@ -264,18 +287,132 @@ function drawAxis(
       ? { tickFormat: spec.tickFormat as unknown as (v: AxisDomain) => string }
       : {}),
   };
-  if (spec.step === undefined && spec.minorTicks !== true) {
+  if (scale.kind === 'band') {
     renderAxis(group, d3Scale, options);
     return;
   }
-  // A fixed step, or minor ticks on a log axis: give d3-axis the tick values
-  // explicitly, since neither comes out of `axis.ticks(count)`.
-  const generator = createAxis(d3Scale, options);
-  generator.tickValues(tickValues(scale, spec) as unknown as AxisDomain[]);
+  // While zoomed, the ticks are taken from the part of the axis that is visible,
+  // so a zoomed axis keeps its labels, and their format follows that part. Without
+  // zoom the visible part is the whole domain and the ticks do not change.
+  const span = axis === 'x' ? ctx.innerWidth : ctx.innerHeight;
+  const part = visiblePart(scale, span);
+  const count = options.tickCount;
+  const isInView = (value: Primitive): boolean => {
+    const p = scale.position(value);
+    return p >= -VISIBLE_EPSILON && p <= span + VISIBLE_EPSILON;
+  };
+  // Automatic ticks of the visible part (the whole axis when not zoomed).
+  const automatic = (): Primitive[] =>
+    (part?.copy ?? (d3Scale as unknown as ContinuousD3)).ticks(count) as Primitive[];
+  let all: Primitive[];
+  if (spec.minorTicks === true) {
+    all = tickValues(scale, spec);
+  } else if (spec.step !== undefined) {
+    all =
+      part !== undefined && scale.kind === 'linear'
+        ? stepValues(part.lo, part.hi, spec.step)
+        : tickValues(scale, spec);
+  } else {
+    all = automatic();
+  }
+  // A fixed step (or minor ticks) can leave fewer than two ticks in a zoomed window,
+  // e.g. a 10 step over a window of 3. Then the automatic ticks of the window are used.
+  if (part !== undefined && all.filter(isInView).length < 2) all = automatic();
+  const inView = all.filter(isInView);
+  const format =
+    spec.tickFormat ??
+    (part !== undefined
+      ? defaultTickFormat(part.copy as unknown as AxisScale<AxisDomain>, count, ctx.locale)
+      : undefined);
+  const generator = createAxis(d3Scale, {
+    ...options,
+    ...(format !== undefined ? { tickFormat: format as unknown as (v: AxisDomain) => string } : {}),
+  });
+  generator.tickValues(inView as unknown as AxisDomain[]);
   select(group)
     .style('color', cssVar('textMuted', LIGHT_THEME.textMuted))
     .style('font-family', cssVar('fontFamily', LIGHT_THEME.fontFamily))
     .call(generator);
+  clampDomainLine(group, side, scale.range, span);
+}
+
+/** Tolerance, in pixels, when a tick is tested against the visible plot. */
+const VISIBLE_EPSILON = 1e-6;
+
+/** The part of a continuous d3 scale that the axis helpers use. */
+interface ContinuousD3 {
+  invert(pixel: number): unknown;
+  copy(): ContinuousD3;
+  domain(values: unknown[]): ContinuousD3;
+  ticks(count: number): unknown[];
+}
+
+/** The visible part of an axis: its scale over the visible values, and their range. */
+interface VisiblePart {
+  /** A copy of the scale whose domain is the visible values (same range). */
+  readonly copy: ContinuousD3;
+  readonly lo: number;
+  readonly hi: number;
+}
+
+function numberOf(value: unknown): number {
+  return value instanceof Date ? value.getTime() : Number(value);
+}
+
+/**
+ * The values shown on the visible part of a continuous axis. Undefined when the
+ * scale cannot be inverted there (band axes, or a log axis with values below 0).
+ */
+function visiblePart(scale: PlotScale, span: number): VisiblePart | undefined {
+  if (scale.kind === 'band') return undefined;
+  const d3 = scale.d3 as ContinuousD3;
+  const a = d3.invert(0);
+  const b = d3.invert(span);
+  const lo = Math.min(numberOf(a), numberOf(b));
+  const hi = Math.max(numberOf(a), numberOf(b));
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi <= lo) return undefined;
+  if (scale.kind === 'log' && lo <= 0) return undefined;
+  return { copy: d3.copy().domain([a, b]), lo, hi };
+}
+
+/** Multiples of `step` between `lo` and `hi` (fixed-step linear axes). */
+function stepValues(lo: number, hi: number, step: number): Primitive[] {
+  if (!(step > 0)) throw new RangeError('plot: step must be positive');
+  const out: Primitive[] = [];
+  const first = Math.ceil(lo / step - 1e-9);
+  const last = Math.floor(hi / step + 1e-9);
+  for (let k = first; k <= last; k += 1) out.push(Number((k * step).toPrecision(12)));
+  return out;
+}
+
+/**
+ * Stop the axis line at the plot's edges. While zoomed, the scale extends past
+ * the plot, and d3 would draw the line past the plot too. The line keeps d3's
+ * shape (tick marks at both ends) between the clamped range ends.
+ */
+function clampDomainLine(
+  group: SVGGElement,
+  side: NonNullable<AxisSpec['position']>,
+  range: readonly [number, number],
+  span: number,
+): void {
+  const domain = group.querySelector('path.domain');
+  if (!domain) return;
+  const clamp = (v: number): number => Math.min(span, Math.max(0, v));
+  const [r0, r1] = range;
+  const c0 = clamp(r0);
+  const c1 = clamp(r1);
+  if (c0 === r0 && c1 === r1) return;
+  const tick = 6;
+  const d =
+    side === 'bottom'
+      ? `M${String(c0)},${String(tick)}V0.5H${String(c1)}V${String(tick)}`
+      : side === 'top'
+        ? `M${String(c0)},${String(-tick)}V0.5H${String(c1)}V${String(-tick)}`
+        : side === 'left'
+          ? `M${String(-tick)},${String(c0)}H0.5V${String(c1)}H${String(-tick)}`
+          : `M${String(tick)},${String(c0)}H0.5V${String(c1)}H${String(tick)}`;
+  domain.setAttribute('d', d);
 }
 
 function appendGroup(parent: SVGGElement, cls: string): SVGGElement {
