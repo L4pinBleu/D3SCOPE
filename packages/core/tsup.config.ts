@@ -8,6 +8,7 @@ export default defineConfig([
       'src/element/index.ts',
       'src/animation/index.ts',
       'src/animation/motion.ts',
+      'src/plot/index.ts',
     ],
     format: ['esm'],
     dts: true,

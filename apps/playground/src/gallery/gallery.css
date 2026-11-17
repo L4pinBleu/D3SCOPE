@@ -1,0 +1,102 @@
+/* The plot gallery: nav on top, controls left, chart right, JSON below. */
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+}
+body {
+  margin: 0;
+}
+.gallery-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
+}
+.gallery-nav button {
+  border: 1px solid #ccc;
+  background: #f6f6f6;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.gallery-nav button.active {
+  background: #2f6fed;
+  color: white;
+  border-color: #2f6fed;
+}
+.gallery-main {
+  display: flex;
+  gap: 16px;
+  padding: 12px;
+  align-items: flex-start;
+}
+.gallery-panel {
+  flex: 0 0 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gallery-group {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 8px;
+  padding: 6px 8px;
+}
+.gallery-group legend {
+  font-weight: 600;
+  font-size: 13px;
+  padding: 0 4px;
+}
+.gallery-control {
+  display: contents;
+}
+.gallery-control input,
+.gallery-control select {
+  width: 100%;
+  box-sizing: border-box;
+}
+.gallery-chart {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.gallery-error {
+  color: #b00020;
+  background: #fdecef;
+  border: 1px solid #b00020;
+  border-radius: 6px;
+  padding: 8px;
+  white-space: pre-wrap;
+}
+.gallery-json {
+  margin: 12px;
+  padding: 10px;
+  background: #f4f4f4;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  max-height: 40vh;
+  overflow: auto;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #14161a;
+    color: #e8e8e8;
+  }
+  .gallery-nav {
+    border-color: #333;
+  }
+  .gallery-nav button {
+    background: #23262d;
+    border-color: #3a3f47;
+    color: #e8e8e8;
+  }
+  .gallery-group,
+  .gallery-json {
+    border-color: #3a3f47;
+    background: #1b1e24;
+  }
+}

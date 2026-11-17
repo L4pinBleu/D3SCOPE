@@ -1,6 +1,6 @@
 {
   "name": "@d3scope/core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "D3SCOPE core: charts, scales, axes, legends, interactions, export and Plugin API",
   "license": "AGPL-3.0-or-later",
   "author": "L4pinBleu",
@@ -14,6 +14,10 @@
     "./plugin": {
       "types": "./dist/plugin/index.d.ts",
       "import": "./dist/plugin/index.js"
+    },
+    "./plot": {
+      "types": "./dist/plot/index.d.ts",
+      "import": "./dist/plot/index.js"
     },
     "./element": {
       "types": "./dist/element/index.d.ts",

@@ -24,6 +24,8 @@ export interface ContinuousScaleOptions {
   nice?: boolean | number;
   /** Clamp outputs to the range. Default `false`. */
   clamp?: boolean;
+  /** Base of a logarithmic scale. Default `10`. Log scales only. */
+  base?: number;
 }
 
 export interface BandScaleOptions {
@@ -58,6 +60,7 @@ export function logScale(
   const scale = scaleLog()
     .domain([...domain])
     .range([...range]);
+  if (options.base !== undefined) scale.base(options.base);
   applyContinuous(scale, options);
   return scale;
 }

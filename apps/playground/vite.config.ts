@@ -11,6 +11,14 @@ export default defineConfig({
       '@d3scope/core': fileURLToPath(new URL('../../packages/core/src/index.ts', import.meta.url)),
     },
   },
+  build: {
+    rolldownOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        gallery: fileURLToPath(new URL('./gallery.html', import.meta.url)),
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     include: ['tests/**/*.test.ts'],

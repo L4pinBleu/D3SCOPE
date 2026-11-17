@@ -91,10 +91,10 @@ describe('registerPlugin', () => {
   });
 
   it('refuses a plugin whose apiVersion this core does not provide, with no partial state', () => {
-    expect(PLUGIN_API_VERSION).toBe('1.0.0');
+    expect(PLUGIN_API_VERSION).toBe('1.3.0');
     expect(() => {
       register(plugin({ name: 'future', apiVersion: '^2.0.0', charts: { futureChart: CHART } }));
-    }).toThrow(/needs Plugin API \^2.0.0, this core provides 1.0.0/);
+    }).toThrow(`needs Plugin API ^2.0.0, this core provides ${PLUGIN_API_VERSION}`);
     expect(getChart('futureChart')).toBeUndefined();
     expect(listPlugins()).not.toContain('future');
   });
