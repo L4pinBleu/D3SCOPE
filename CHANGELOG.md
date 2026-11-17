@@ -6,6 +6,8 @@ All notable changes to `@d3scope/core` are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-17
+
 ### Added
 
 - Zoom and pan of the plot area: the `zoom` option of `plot()` (off by default)
