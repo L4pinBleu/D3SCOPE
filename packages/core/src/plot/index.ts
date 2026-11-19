@@ -61,6 +61,7 @@ export type {
   AxisView,
   ZoomAxes,
   ZoomLink,
+  ZoomReset,
   ZoomSpec,
   ZoomView,
 } from './types.js';

@@ -6,17 +6,21 @@
  * keeps the data covering the plot area, so the view never shows empty space.
  *
  * Mouse: the wheel zooms around the cursor, the left button drags to pan, the
- * right button drags a rectangle and zooms to it, and a double-click resets.
+ * right button drags a rectangle and zooms to it. Touch: one finger pans, two
+ * fingers pinch. The view returns to the full view by a double-click, a reset
+ * button, or both, as `resetOn` says.
  *
  * `plot()` keeps one session per SVG. Its view survives data updates, and every
  * handler redraws with the latest spec.
  */
+import { cssVar } from '../theme/index.js';
 import type {
   AxisView,
   AxisZoomLimits,
   PlotContext,
   PlotSpec,
   Primitive,
+  ZoomReset,
   ZoomSpec,
   ZoomView,
 } from './types.js';
@@ -53,8 +57,19 @@ interface Session {
   draw: (spec: PlotSpec, view: ZoomView) => PlotContext;
   ctx?: PlotContext;
   /** What the pointer is doing, so the hover cursor does not override it. */
-  busy?: 'pan' | 'select' | undefined;
+  busy?: 'pan' | 'select' | 'pinch' | undefined;
 }
+
+/** Pinch in progress: the spread of the two fingers, and the view when it began. */
+interface Pinch {
+  readonly distance: number;
+  readonly view: ZoomView;
+}
+
+/** Size of the reset button, in pixels. */
+const RESET_WIDTH = 104;
+const RESET_HEIGHT = 22;
+const DEFAULT_RESET_LABEL = 'Réinitialiser';
 
 interface Active {
   readonly session: Session;
@@ -63,6 +78,9 @@ interface Active {
 
 const sessions = new WeakMap<SVGSVGElement, Session>();
 const listening = new WeakSet<SVGSVGElement>();
+/** Touch points of each plot, by pointer id, in client pixels. */
+const touches = new WeakMap<SVGSVGElement, Map<number, Point>>();
+const pinches = new WeakMap<SVGSVGElement, Pinch>();
 
 /** Pixel range of an axis as drawn in `view`, from its base range. */
 export function viewRange(view: AxisView, base: readonly [number, number]): [number, number] {
@@ -256,7 +274,10 @@ export function drawZoomable(
   draw: (spec: PlotSpec, view: ZoomView) => PlotContext,
 ): PlotContext {
   if (spec.zoom?.isEnabled !== true) {
-    if (sessions.has(svg)) svg.style.cursor = '';
+    if (sessions.has(svg)) {
+      svg.style.cursor = '';
+      svg.style.touchAction = '';
+    }
     sessions.delete(svg);
     return draw(spec, IDENTITY_VIEW);
   }
@@ -264,14 +285,83 @@ export function drawZoomable(
   validateZoomLimits(spec.zoom);
   const session: Session = sessions.get(svg) ?? { spec, view: IDENTITY_VIEW, draw };
   session.spec = spec;
-  session.draw = draw;
+  // Every redraw, from a handler or from here, adds the same decorations.
+  session.draw = (next, view) => paint(svg, next, view, draw);
   sessions.set(svg, session);
+  // A finger pans and two fingers pinch: the page must not scroll or zoom under them.
+  svg.style.touchAction = 'none';
   if (!listening.has(svg)) {
     listening.add(svg);
     listen(svg);
   }
-  session.ctx = draw(spec, session.view);
+  session.ctx = session.draw(spec, session.view);
   return session.ctx;
+}
+
+/** Draw the chart, then the controls that zoom adds on top of it. */
+function paint(
+  svg: SVGSVGElement,
+  spec: PlotSpec,
+  view: ZoomView,
+  draw: (spec: PlotSpec, view: ZoomView) => PlotContext,
+): PlotContext {
+  const ctx = draw(spec, view);
+  if (resetsOn(spec.zoom, 'button')) {
+    addResetButton(svg, ctx, spec.zoom?.resetLabel ?? DEFAULT_RESET_LABEL);
+  }
+  return ctx;
+}
+
+/** Whether `mode` resets the view, given the `resetOn` option (`dblclick` by default). */
+function resetsOn(zoom: ZoomSpec | undefined, mode: 'dblclick' | 'button'): boolean {
+  const on: ZoomReset = zoom?.resetOn ?? 'dblclick';
+  return on === 'both' || on === mode;
+}
+
+/** Reset button above the top right of the plot area. Clicking it, or pressing Enter on it, resets the view. */
+function addResetButton(svg: SVGSVGElement, ctx: PlotContext, label: string): void {
+  const group = document.createElementNS(SVG_NS, 'g');
+  group.setAttribute('class', 'd3s-zoom-reset');
+  group.setAttribute('role', 'button');
+  group.setAttribute('tabindex', '0');
+  group.setAttribute('aria-label', label);
+  group.setAttribute('style', 'cursor: pointer');
+  const x = ctx.margin.left + ctx.innerWidth - RESET_WIDTH;
+  const y = Math.max(0, ctx.margin.top - RESET_HEIGHT - 4);
+
+  const box = document.createElementNS(SVG_NS, 'rect');
+  box.setAttribute('x', String(x));
+  box.setAttribute('y', String(y));
+  box.setAttribute('width', String(RESET_WIDTH));
+  box.setAttribute('height', String(RESET_HEIGHT));
+  box.setAttribute('rx', '3');
+  box.setAttribute('stroke-opacity', '0.4');
+  box.setAttribute(
+    'style',
+    `fill: ${cssVar('surface', '#ffffff')}; stroke: ${cssVar('text', '#1f2328')}`,
+  );
+  group.appendChild(box);
+
+  const text = document.createElementNS(SVG_NS, 'text');
+  text.setAttribute('x', String(x + RESET_WIDTH / 2));
+  text.setAttribute('y', String(y + RESET_HEIGHT / 2));
+  text.setAttribute('text-anchor', 'middle');
+  text.setAttribute('dominant-baseline', 'central');
+  text.setAttribute('font-size', '12');
+  text.setAttribute('style', `fill: ${cssVar('text', '#1f2328')}`);
+  text.textContent = label;
+  group.appendChild(text);
+
+  group.addEventListener('click', (e) => {
+    e.stopPropagation();
+    resetZoom(svg);
+  });
+  group.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    resetZoom(svg);
+  });
+  svg.appendChild(group);
 }
 
 /** The view of `svg`, or `undefined` when zoom is off. */
@@ -307,10 +397,18 @@ function listen(svg: SVGSVGElement): void {
     { passive: false },
   );
   svg.addEventListener('pointerdown', (e) => {
+    trackTouch(svg, e);
     onPointerDown(svg, e);
   });
   svg.addEventListener('pointermove', (e) => {
     onHover(svg, e);
+    onTouchMove(svg, e);
+  });
+  svg.addEventListener('pointerup', (e) => {
+    onTouchEnd(svg, e);
+  });
+  svg.addEventListener('pointercancel', (e) => {
+    onTouchEnd(svg, e);
   });
   svg.addEventListener('contextmenu', (e) => {
     onContextMenu(svg, e);
@@ -418,6 +516,9 @@ function onContextMenu(svg: SVGSVGElement, e: MouseEvent): void {
 function onPointerDown(svg: SVGSVGElement, e: PointerEvent): void {
   const active = activeSession(svg);
   if (!active) return;
+  // The reset button handles its own click, and a second finger never starts a pan.
+  if (isOnResetButton(e.target)) return;
+  if (e.pointerType === 'touch' && (touches.get(svg)?.size ?? 0) > 1) return;
   const zoom: ZoomSpec = active.session.spec.zoom ?? {};
   const p = plotPoint(svg, active, e.clientX, e.clientY);
   if (regionOf(p, active.ctx) !== 'plot') return;
@@ -441,13 +542,14 @@ function startPan(svg: SVGSVGElement, active: Active, e: PointerEvent): void {
   function stop(): void {
     window.removeEventListener('pointermove', onMove);
     window.removeEventListener('pointerup', stop);
-    session.busy = undefined;
+    // A pinch that took over the pointers keeps its state.
+    if (session.busy === 'pan') session.busy = undefined;
     svg.style.cursor = 'grab';
   }
 
   function onMove(m: PointerEvent): void {
     const current = activeSession(svg);
-    if (!current) {
+    if (current?.session.busy !== 'pan') {
       stop();
       return;
     }
@@ -560,7 +662,81 @@ function zoomToRect(active: Active, rect: Rect): void {
 
 function onDoubleClick(svg: SVGSVGElement, e: MouseEvent): void {
   const active = activeSession(svg);
-  if (!active) return;
+  if (!active || !resetsOn(active.session.spec.zoom, 'dblclick')) return;
   if (regionOf(plotPoint(svg, active, e.clientX, e.clientY), active.ctx) !== 'plot') return;
   redraw(active, IDENTITY_VIEW);
+}
+
+function isOnResetButton(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest('.d3s-zoom-reset') !== null;
+}
+
+/** Remember each touch point, and start a pinch when the second finger lands. */
+function trackTouch(svg: SVGSVGElement, e: PointerEvent): void {
+  if (e.pointerType !== 'touch') return;
+  let points = touches.get(svg);
+  if (!points) {
+    points = new Map();
+    touches.set(svg, points);
+  }
+  points.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (points.size === 2) beginPinch(svg, points);
+}
+
+function beginPinch(svg: SVGSVGElement, points: Map<number, Point>): void {
+  const active = activeSession(svg);
+  const distance = pinchDistance(points);
+  if (!active || distance === 0) return;
+  // Stops a pan that the first finger started: the pinch owns the pointers now.
+  active.session.busy = 'pinch';
+  svg.style.cursor = '';
+  pinches.set(svg, { distance, view: active.session.view });
+}
+
+/** Distance between the first two touch points, in pixels. */
+function pinchDistance(points: ReadonlyMap<number, Point>): number {
+  const [a, b] = [...points.values()];
+  return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
+}
+
+function onTouchMove(svg: SVGSVGElement, e: PointerEvent): void {
+  if (e.pointerType !== 'touch') return;
+  const points = touches.get(svg);
+  if (!points?.has(e.pointerId)) return;
+  points.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  const pinch = pinches.get(svg);
+  if (pinch) pinchTo(svg, pinch, points);
+}
+
+/** Zoom every zoomable axis by the change of spread, keeping the midpoint of the fingers in place. */
+function pinchTo(svg: SVGSVGElement, pinch: Pinch, points: ReadonlyMap<number, Point>): void {
+  const active = activeSession(svg);
+  const zoom: ZoomSpec = active?.session.spec.zoom ?? {};
+  const distance = pinchDistance(points);
+  if (!active || zoom.isWheelEnabled === false || distance === 0) return;
+  const [a, b] = [...points.values()];
+  if (!a || !b) return;
+  const factor = distance / pinch.distance;
+  const mid = plotPoint(svg, active, (a.x + b.x) / 2, (a.y + b.y) / 2);
+  let view = pinch.view;
+  for (const axis of zoomableAxes(active.ctx, zoom)) {
+    const span = spanOf(active.ctx, axis);
+    const bounds = boundsFor(active.ctx, view, zoom, axis);
+    const next = zoomAxis(pinch.view[axis], factor, pivotOf(mid, axis, span), span, bounds);
+    view = withAxis(view, axis, next);
+  }
+  redraw(active, view);
+}
+
+function onTouchEnd(svg: SVGSVGElement, e: PointerEvent): void {
+  if (e.pointerType !== 'touch') return;
+  const points = touches.get(svg);
+  if (!points) return;
+  points.delete(e.pointerId);
+  if (points.size < 2 && pinches.has(svg)) {
+    pinches.delete(svg);
+    const session = sessions.get(svg);
+    if (session?.busy === 'pinch') session.busy = undefined;
+  }
+  if (points.size === 0) touches.delete(svg);
 }
