@@ -5,6 +5,7 @@
  * `serializeSvg` is pure DOM work and is unit-tested directly. `exportPng` needs
  * `Image`, `canvas` and object URLs, which only exist in a browser.
  */
+import { REVEAL_WIDTH_ATTRIBUTE } from '../plot/reveal.js';
 
 export interface PngExportOptions {
   /** Pixel ratio of the output image. Default: 2. */
@@ -60,6 +61,11 @@ export function serializeSvg(svg: SVGSVGElement): string {
 
   clone.setAttribute('width', String(width));
   clone.setAttribute('height', String(height));
+  // A plot still revealing its marks (first display animation) is exported whole.
+  for (const rect of Array.from(clone.querySelectorAll(`[${REVEAL_WIDTH_ATTRIBUTE}]`))) {
+    rect.setAttribute('width', rect.getAttribute(REVEAL_WIDTH_ATTRIBUTE) ?? '');
+    rect.removeAttribute(REVEAL_WIDTH_ATTRIBUTE);
+  }
 
   const sourceNodes = [svg, ...Array.from(svg.querySelectorAll<SVGElement>('*'))];
   const cloneNodes = [clone, ...Array.from(clone.querySelectorAll<SVGElement>('*'))];
