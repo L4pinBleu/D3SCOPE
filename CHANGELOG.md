@@ -14,6 +14,25 @@ All notable changes to `@d3scope/core` are listed here. The format follows
 - Zoom on touch screens: one finger pans, two fingers pinch. The zoomed plot
   sets `touch-action: none`, so the page does not scroll under the fingers.
   The pinch follows `isWheelEnabled`.
+- Zoom controls, for buttons and fields of the page: `zoomBy` (factor, axes,
+  centre), `panBy` (share of the visible range), `setVisibleDomain` and
+  `getVisibleDomain` (range of data values per axis), `setZoomView`, and
+  `resetZoom` with options. `onZoom` tells a listener about every change of the
+  view, with its source.
+- `linkZoom`: plots share the view of the chosen axes (for stacked panels on one
+  time axis).
+- Zoom animation: `zoom.animation` (`duration`, `easing`: `linear`, `cubic-out`,
+  `elastic-out`) animates the reset, the zoom to a selection and the control
+  functions, with `d3-interpolate` (`interpolateZoom`), `d3-timer` and `d3-ease`.
+  Off by default, and skipped when the user prefers reduced motion. New
+  dependencies: `d3-ease`, `d3-interpolate`, `d3-timer` (ISC).
+- First display animation: the `animation` option of `plot()` reveals the marks
+  from left to right on the first draw of an SVG (not on zoom redraws or data
+  updates). Same settings as `zoom.animation`; off by default, skipped when the
+  user prefers reduced motion. The PNG and SVG exports draw a plot whole even
+  while it is being revealed.
+- Plugin API 1.4.0: the zoom controls and the zoom types are re-exported by
+  `@d3scope/core/plugin`.
 
 ## [0.2.0] - 2026-11-17
 

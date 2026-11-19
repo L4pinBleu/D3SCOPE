@@ -32,8 +32,11 @@ import {
  * 1.2.0 re-exports `plot()` and the built-in marks so a plugin draws charts
  * without importing `@d3scope/core/plot` directly.
  * 1.3.0 re-exports the range marks (`rangeX`, `rangeY`) for specification bands.
+ * 1.4.0 re-exports the zoom controls (`zoomBy`, `panBy`, `setVisibleDomain`,
+ * `getVisibleDomain`, `setZoomView`, `getZoomView`, `resetZoom`, `onZoom`,
+ * `linkZoom`) and the zoom types.
  */
-export const PLUGIN_API_VERSION = '1.3.0';
+export const PLUGIN_API_VERSION = '1.4.0';
 
 /** A chart a plugin provides: draws `data` into `svg` with `options`. */
 export interface ChartDefinition<TData = unknown, TOptions = unknown> {
@@ -380,6 +383,17 @@ export type {
 } from '../plot/marks/index.js';
 export { createColorScale } from '../plot/color.js';
 export {
+  getVisibleDomain,
+  getZoomView,
+  linkZoom,
+  onZoom,
+  panBy,
+  resetZoom,
+  setVisibleDomain,
+  setZoomView,
+  zoomBy,
+} from '../plot/zoom.js';
+export {
   createPlotScale,
   inferKind,
   continuousDomain,
@@ -399,4 +413,20 @@ export type {
   PlotSpec,
   Primitive,
   ScaleKind,
+  AxisZoomLimits,
+  DomainRequest,
+  LinkZoomOptions,
+  VisibleDomain,
+  ZoomAnimation,
+  ZoomAxes,
+  ZoomByOptions,
+  ZoomControlOptions,
+  ZoomEasing,
+  ZoomEvent,
+  ZoomLink,
+  ZoomReset,
+  ZoomSource,
+  ZoomSpec,
+  ZoomView,
+  AxisView,
 } from '../plot/types.js';
