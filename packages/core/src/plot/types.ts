@@ -177,6 +177,14 @@ export interface Mark {
 export type ZoomAxes = 'x' | 'y' | 'both';
 
 /**
+ * How the view returns to the full view.
+ * - `dblclick`: a double-click on the plot area (default);
+ * - `button`: a reset button above the plot area, and no double-click;
+ * - `both`: the button and the double-click.
+ */
+export type ZoomReset = 'dblclick' | 'button' | 'both';
+
+/**
  * How the wheel acts when several axes can zoom.
  * - `independent`: a wheel over an axis zooms that axis only; a wheel over the plot zooms every zoomable axis.
  * - `joint`: a wheel zooms every zoomable axis by the same factor, so their ratio is kept.
@@ -224,6 +232,10 @@ export interface ZoomSpec {
    * while Shift or Ctrl is held (for a trackpad). Default: `true`.
    */
   isSelectionEnabled?: boolean;
+  /** How the view returns to the full view. Default: `dblclick`. */
+  resetOn?: ZoomReset;
+  /** Label of the reset button. Default: `Réinitialiser`. */
+  resetLabel?: string;
 }
 
 /** View of one axis: a base pixel `p` is drawn at `k * p + t`, with `k >= 1` and `t <= 0`. */

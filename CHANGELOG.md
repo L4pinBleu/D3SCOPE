@@ -6,6 +6,15 @@ All notable changes to `@d3scope/core` are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Zoom reset: `zoom.resetOn` (`dblclick`, the default; `button`, a reset button
+  drawn above the plot, keyboard reachable; or `both`). The button label is
+  `zoom.resetLabel` (default `Réinitialiser`).
+- Zoom on touch screens: one finger pans, two fingers pinch. The zoomed plot
+  sets `touch-action: none`, so the page does not scroll under the fingers.
+  The pinch follows `isWheelEnabled`.
+
 ## [0.2.0] - 2026-11-17
 
 ### Added
