@@ -10,6 +10,7 @@ import { cssVar, LIGHT_THEME } from '../theme/index.js';
 import { createColorScale } from './color.js';
 import { gridX, gridY } from './grid.js';
 import { createAxisScale, inferKind, tickValues } from './scales.js';
+import { reveal } from './reveal.js';
 import { drawZoomable, viewRange } from './zoom.js';
 import type {
   AxisSpec,
@@ -34,6 +35,8 @@ const TITLE_BLOCK_SPACE = 22;
 const SUBTITLE_BLOCK_SPACE = 16;
 /** Unique ids for clip paths, so several plots on one page do not clash. */
 let clipCounter = 0;
+/** SVGs already drawn once: only the first display is animated. */
+const drawnOnce = new WeakSet<SVGSVGElement>();
 
 /**
  * Draw `spec` into `svg`. Any previous content of the SVG is replaced, so the
@@ -42,7 +45,18 @@ let clipCounter = 0;
  * across calls.
  */
 export function plot(svg: SVGSVGElement, spec: PlotSpec): PlotContext {
-  return drawZoomable(svg, spec, (s, view) => drawPlot(svg, s, view));
+  let isFirst = !drawnOnce.has(svg);
+  drawnOnce.add(svg);
+  return drawZoomable(svg, spec, (s, view) => {
+    const ctx = drawPlot(svg, s, view);
+    // Only the very first draw of this SVG plays the animation, not the zoom redraws
+    // or the data updates.
+    if (isFirst) {
+      isFirst = false;
+      reveal(ctx, s.animation);
+    }
+    return ctx;
+  });
 }
 
 /** Draw one frame of `spec` with the given zoom view. */

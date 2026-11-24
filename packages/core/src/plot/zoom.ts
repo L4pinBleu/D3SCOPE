@@ -12,15 +12,32 @@
  *
  * `plot()` keeps one session per SVG. Its view survives data updates, and every
  * handler redraws with the latest spec.
+ *
+ * The page drives the view with the control functions (`zoomBy`, `panBy`,
+ * `setVisibleDomain`, `setZoomView`, `resetZoom`), listens to it with `onZoom`, and
+ * shares it between plots with `linkZoom`. The jumps can be animated
+ * (`zoom.animation`): the view is interpolated with `d3-interpolate`
+ * (`interpolateZoom`), timed with `d3-timer` and eased with `d3-ease`.
  */
+import { interpolateZoom } from 'd3-interpolate';
+import { timer, type Timer } from 'd3-timer';
 import { cssVar } from '../theme/index.js';
+import { timingOf } from './easing.js';
 import type {
   AxisView,
   AxisZoomLimits,
+  DomainRequest,
+  LinkZoomOptions,
   PlotContext,
   PlotSpec,
   Primitive,
+  VisibleDomain,
+  ZoomAxes,
+  ZoomByOptions,
+  ZoomControlOptions,
+  ZoomEvent,
   ZoomReset,
+  ZoomSource,
   ZoomSpec,
   ZoomView,
 } from './types.js';
@@ -58,6 +75,12 @@ interface Session {
   ctx?: PlotContext;
   /** What the pointer is doing, so the hover cursor does not override it. */
   busy?: 'pan' | 'select' | 'pinch' | undefined;
+  /** Animation of the view in progress, stopped by any new change. */
+  animation?: Timer | undefined;
+  /** Where the animation in progress is heading. */
+  target?: ZoomView | undefined;
+  /** The axes the animation in progress moves; the others stay free for a linked plot. */
+  moving?: { readonly x: boolean; readonly y: boolean } | undefined;
 }
 
 /** Pinch in progress: the spread of the two fingers, and the view when it began. */
@@ -81,6 +104,8 @@ const listening = new WeakSet<SVGSVGElement>();
 /** Touch points of each plot, by pointer id, in client pixels. */
 const touches = new WeakMap<SVGSVGElement, Map<number, Point>>();
 const pinches = new WeakMap<SVGSVGElement, Pinch>();
+/** Listeners of the view of each plot. They outlive the session, so `plot()` can redraw. */
+const listeners = new WeakMap<SVGSVGElement, Set<(event: ZoomEvent) => void>>();
 
 /** Pixel range of an axis as drawn in `view`, from its base range. */
 export function viewRange(view: AxisView, base: readonly [number, number]): [number, number] {
@@ -274,7 +299,9 @@ export function drawZoomable(
   draw: (spec: PlotSpec, view: ZoomView) => PlotContext,
 ): PlotContext {
   if (spec.zoom?.isEnabled !== true) {
-    if (sessions.has(svg)) {
+    const previous = sessions.get(svg);
+    if (previous) {
+      stopAnimation(previous);
       svg.style.cursor = '';
       svg.style.touchAction = '';
     }
@@ -370,10 +397,261 @@ export function getZoomView(svg: SVGSVGElement): ZoomView | undefined {
   return session?.spec.zoom?.isEnabled === true ? session.view : undefined;
 }
 
-/** Back to the full view. Does nothing when zoom is off. */
-export function resetZoom(svg: SVGSVGElement): void {
+/**
+ * Back to the full view. Does nothing when zoom is off. Animated when the plot's
+ * `zoom.animation` says so, unless `options.animate` decides otherwise.
+ */
+export function resetZoom(svg: SVGSVGElement, options: ZoomControlOptions = {}): void {
   const active = activeSession(svg);
-  if (active) redraw(active, IDENTITY_VIEW);
+  if (active) goTo(svg, active, IDENTITY_VIEW, 'reset', options.animate);
+}
+
+/**
+ * Set the view of `svg`, kept within its bounds. Axes that cannot zoom (band axes,
+ * or axes left out of `zoom.axes`) keep the full view. Does nothing when zoom is off.
+ */
+export function setZoomView(
+  svg: SVGSVGElement,
+  view: ZoomView,
+  options: ZoomControlOptions = {},
+): void {
+  const active = activeSession(svg);
+  if (!active) return;
+  goTo(svg, active, clampView(active, view), 'control', options.animate);
+}
+
+/**
+ * Multiply the zoom of `svg` by `factor`: above 1 zooms in, below 1 zooms out.
+ * The `center` of the plot area stays in place. Does nothing when zoom is off.
+ */
+export function zoomBy(svg: SVGSVGElement, factor: number, options: ZoomByOptions = {}): void {
+  if (!(factor > 0) || !Number.isFinite(factor)) {
+    throw new RangeError('zoomBy: factor must be a finite positive number');
+  }
+  const active = activeSession(svg);
+  if (!active) return;
+  const zoom: ZoomSpec = active.session.spec.zoom ?? {};
+  const wanted = axesOf(options.axes ?? 'both');
+  let view = targetView(active);
+  for (const axis of zoomableAxes(active.ctx, zoom)) {
+    if (!wanted.includes(axis)) continue;
+    const span = spanOf(active.ctx, axis);
+    const share = Math.min(1, Math.max(0, options.center?.[axis] ?? 0.5));
+    const bounds = boundsFor(active.ctx, active.session.view, zoom, axis);
+    view = withAxis(view, axis, zoomAxis(view[axis], factor, share * span, span, bounds));
+  }
+  goTo(svg, active, view, 'control', options.animate);
+}
+
+/**
+ * Move the view of `svg` by a share of the visible range: `x: 0.1` shows the next
+ * tenth towards the end of the x axis (the right), `y: 0.1` the next tenth towards
+ * the end of the y axis (the top). Negative values move back. Does nothing when
+ * zoom is off, or when the view already shows the edge.
+ */
+export function panBy(
+  svg: SVGSVGElement,
+  shift: { readonly x?: number; readonly y?: number },
+  options: ZoomControlOptions = {},
+): void {
+  const active = activeSession(svg);
+  if (!active) return;
+  const zoom: ZoomSpec = active.session.spec.zoom ?? {};
+  let view = targetView(active);
+  for (const axis of zoomableAxes(active.ctx, zoom)) {
+    const share = shift[axis];
+    if (share === undefined || share === 0) continue;
+    if (!Number.isFinite(share)) throw new RangeError('panBy: shift must be finite');
+    const span = spanOf(active.ctx, axis);
+    // The x range runs left to right and the y range bottom to top: the content
+    // moves the other way round to show further along the axis.
+    const sign = isReversed(active.ctx, axis) ? 1 : -1;
+    const bounds = boundsFor(active.ctx, active.session.view, zoom, axis);
+    view = withAxis(view, axis, panAxis(view[axis], sign * share * span, span, bounds));
+  }
+  goTo(svg, active, view, 'control', options.animate);
+}
+
+/**
+ * The range of data values visible on each axis, `[low, high]`, or `undefined`
+ * when zoom is off. Band axes give their first and last categories.
+ */
+export function getVisibleDomain(svg: SVGSVGElement): VisibleDomain | undefined {
+  const active = activeSession(svg);
+  if (!active) return undefined;
+  return { x: visibleRange(active.ctx, 'x'), y: visibleRange(active.ctx, 'y') };
+}
+
+/**
+ * Show the given range of data values on each axis: `{ x: [10, 20] }` spreads 10 to
+ * 20 over the width of the plot area. The view stays within its bounds (the axis's
+ * data, and the `zoom.x` and `zoom.y` limits), so a range past them is cut. A
+ * missing axis, or an axis that cannot zoom, keeps its view. Does nothing when
+ * zoom is off.
+ * @throws RangeError when a range is empty or a value has no position on its axis.
+ */
+export function setVisibleDomain(
+  svg: SVGSVGElement,
+  domain: DomainRequest,
+  options: ZoomControlOptions = {},
+): void {
+  const active = activeSession(svg);
+  if (!active) return;
+  const zoom: ZoomSpec = active.session.spec.zoom ?? {};
+  let view = targetView(active);
+  for (const axis of zoomableAxes(active.ctx, zoom)) {
+    const range = domain[axis];
+    if (range === undefined) continue;
+    const scale = axis === 'x' ? active.ctx.x : active.ctx.y;
+    const current = active.session.view[axis];
+    // Base pixel of a value: its position on the full view, whatever the zoom.
+    const base = (value: Primitive): number => (scale.position(value) - current.t) / current.k;
+    const a = base(range[0]);
+    const b = base(range[1]);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) {
+      throw new RangeError(`setVisibleDomain: a value of ${axis} has no position on its axis`);
+    }
+    if (a === b) throw new RangeError(`setVisibleDomain: the ${axis} range is empty`);
+    const low = Math.min(a, b);
+    const span = spanOf(active.ctx, axis);
+    const k = span / Math.abs(b - a);
+    const bounds = boundsFor(active.ctx, active.session.view, zoom, axis);
+    view = withAxis(view, axis, clampAxis({ k, t: -k * low }, span, bounds));
+  }
+  goTo(svg, active, view, 'control', options.animate);
+}
+
+/**
+ * Call `listener` after every change of the view of `svg`: wheel, drag, selection,
+ * pinch, reset, control functions and linked plots. Returns a function that stops
+ * listening. The listener stays when `plot()` redraws the SVG.
+ */
+export function onZoom(svg: SVGSVGElement, listener: (event: ZoomEvent) => void): () => void {
+  let set = listeners.get(svg);
+  if (!set) {
+    set = new Set();
+    listeners.set(svg, set);
+  }
+  set.add(listener);
+  return () => {
+    listeners.get(svg)?.delete(listener);
+  };
+}
+
+/**
+ * Share the view of `axes` between plots: a change in one is copied to the others,
+ * as a share of each plot area, so plots of different sizes follow each other. The
+ * plots should show the same data range on the linked axes. The other plots take
+ * the view of the first one at once. Returns a function that unlinks them.
+ */
+export function linkZoom(
+  svgs: readonly SVGSVGElement[],
+  options: LinkZoomOptions = {},
+): () => void {
+  const axes = axesOf(options.axes ?? 'both');
+  let copying = false;
+  const share = (source: SVGSVGElement, view: ZoomView): void => {
+    if (copying) return;
+    copying = true;
+    try {
+      for (const target of svgs) {
+        if (target !== source) copyView(source, view, target, axes);
+      }
+    } finally {
+      copying = false;
+    }
+  };
+  const stops = svgs.map((svg) =>
+    onZoom(svg, (event) => {
+      share(svg, event.view);
+    }),
+  );
+  const first = svgs[0];
+  const firstView = first ? getZoomView(first) : undefined;
+  if (first && firstView) share(first, firstView);
+  return () => {
+    for (const stop of stops) stop();
+  };
+}
+
+/** Copy the axes of `view`, from the plot `source`, to the plot `target`. */
+function copyView(
+  source: SVGSVGElement,
+  view: ZoomView,
+  targetSvg: SVGSVGElement,
+  axes: readonly Axis[],
+): void {
+  const from = activeSession(source);
+  const to = activeSession(targetSvg);
+  if (!from || !to) return;
+  const zoom: ZoomSpec = to.session.spec.zoom ?? {};
+  // An animation of the target goes on: it moves only the axes it changes, and the
+  // copied axes are where it is heading from now on.
+  let next = to.session.view;
+  let target = to.session.target;
+  for (const axis of zoomableAxes(to.ctx, zoom)) {
+    if (!axes.includes(axis)) continue;
+    const ratio = spanOf(to.ctx, axis) / spanOf(from.ctx, axis);
+    const bounds = boundsFor(to.ctx, to.session.view, zoom, axis);
+    const span = spanOf(to.ctx, axis);
+    const copied = clampAxis({ k: view[axis].k, t: view[axis].t * ratio }, span, bounds);
+    next = withAxis(next, axis, copied);
+    // An axis the target animates itself keeps its own destination.
+    if (target && to.session.moving?.[axis] !== true) target = withAxis(target, axis, copied);
+  }
+  to.session.target = target;
+  if (!sameView(next, to.session.view)) redraw(targetSvg, to, next, 'link');
+}
+
+function axesOf(axes: ZoomAxes): Axis[] {
+  return axes === 'both' ? ['x', 'y'] : [axes];
+}
+
+function sameView(a: ZoomView, b: ZoomView): boolean {
+  return sameAxis(a.x, b.x) && sameAxis(a.y, b.y);
+}
+
+function sameAxis(a: AxisView, b: AxisView): boolean {
+  return a.k === b.k && a.t === b.t;
+}
+
+/** Whether the pixel range of `axis` runs backwards: true for y (bottom to top), unless reversed. */
+function isReversed(ctx: PlotContext, axis: Axis): boolean {
+  const scale = axis === 'x' ? ctx.x : ctx.y;
+  return scale.range[0] > scale.range[1];
+}
+
+/** The data values at both ends of the visible part of `axis`, low first. */
+function visibleRange(ctx: PlotContext, axis: Axis): readonly [Primitive, Primitive] {
+  const scale = axis === 'x' ? ctx.x : ctx.y;
+  const first = scale.domain[0];
+  const last = scale.domain[scale.domain.length - 1];
+  const invert = (scale.d3 as { invert?: (pixel: number) => number | Date }).invert;
+  if (scale.kind === 'band' || typeof invert !== 'function' || first === undefined) {
+    return [first ?? Number.NaN, last ?? Number.NaN];
+  }
+  const span = spanOf(ctx, axis);
+  const a = invert.call(scale.d3, 0);
+  const b = invert.call(scale.d3, span);
+  return numberOf(a) <= numberOf(b) ? [a, b] : [b, a];
+}
+
+/** `view` within the bounds of each zoomable axis; the other axes keep the full view. */
+function clampView(active: Active, view: ZoomView): ZoomView {
+  const zoom: ZoomSpec = active.session.spec.zoom ?? {};
+  const axes = zoomableAxes(active.ctx, zoom);
+  let next: ZoomView = IDENTITY_VIEW;
+  for (const axis of axes) {
+    const span = spanOf(active.ctx, axis);
+    const bounds = boundsFor(active.ctx, active.session.view, zoom, axis);
+    next = withAxis(next, axis, clampAxis(view[axis], span, bounds));
+  }
+  return next;
+}
+
+/** The view a control function starts from: where a running animation was heading. */
+function targetView(active: Active): ZoomView {
+  return active.session.target ?? active.session.view;
 }
 
 function activeSession(svg: SVGSVGElement): Active | undefined {
@@ -383,9 +661,98 @@ function activeSession(svg: SVGSVGElement): Active | undefined {
   return { session, ctx };
 }
 
-function redraw(active: Active, view: ZoomView): void {
+/** Draw `view` at once, and tell the listeners. */
+function redraw(svg: SVGSVGElement, active: Active, view: ZoomView, source: ZoomSource): void {
   active.session.view = view;
   active.session.ctx = active.session.draw(active.session.spec, view);
+  const set = listeners.get(svg);
+  if (!set) return;
+  const event: ZoomEvent = { svg, view, source };
+  for (const listener of [...set]) listener(event);
+}
+
+/** A change the pointer drives: it stops any animation, then draws at once. */
+function applyNow(svg: SVGSVGElement, active: Active, view: ZoomView, source: ZoomSource): void {
+  stopAnimation(active.session);
+  redraw(svg, active, view, source);
+}
+
+/**
+ * Go to `view`: animated when `animate` says so, or, when it is not given, when the
+ * plot's `zoom.animation` is on and the user does not prefer reduced motion.
+ */
+function goTo(
+  svg: SVGSVGElement,
+  active: Active,
+  view: ZoomView,
+  source: ZoomSource,
+  animate: boolean | undefined,
+): void {
+  const { session } = active;
+  stopAnimation(session);
+  const settings = timingOf(session.spec.zoom?.animation, animate);
+  if (!settings || sameView(view, session.view)) {
+    if (!sameView(view, session.view)) redraw(svg, active, view, source);
+    return;
+  }
+  const from = session.view;
+  const lerp = {
+    x: axisInterpolator(active.ctx, 'x', from, view),
+    y: axisInterpolator(active.ctx, 'y', from, view),
+  };
+  // Only the axes that change are animated: the others stay free, so a linked plot
+  // can move them while the animation runs.
+  const moving = { x: !sameAxis(from.x, view.x), y: !sameAxis(from.y, view.y) };
+  session.target = view;
+  session.moving = moving;
+  session.animation = timer((elapsed) => {
+    const current = activeSession(svg);
+    if (current?.session !== session) {
+      stopAnimation(session);
+      return;
+    }
+    const done = elapsed >= settings.duration;
+    const e = done ? 1 : settings.ease(elapsed / settings.duration);
+    const now = session.view;
+    const end = session.target ?? view;
+    const frame: ZoomView = {
+      x: moving.x ? (done ? end.x : lerp.x(e)) : now.x,
+      y: moving.y ? (done ? end.y : lerp.y(e)) : now.y,
+    };
+    if (done) stopAnimation(session);
+    if (!sameView(frame, now)) redraw(svg, current, frame, source);
+  });
+}
+
+/**
+ * Interpolate one axis from `from` to `to` with `d3.interpolateZoom`: the visible
+ * window, as a centre and a width in base pixels, follows the smooth zoom path of
+ * van Wijk and Nuij. The width stays positive, even past 1 on an elastic easing.
+ */
+function axisInterpolator(
+  ctx: PlotContext,
+  axis: Axis,
+  from: ZoomView,
+  to: ZoomView,
+): (e: number) => AxisView {
+  const span = spanOf(ctx, axis);
+  const window = (v: AxisView): [number, number, number] => {
+    const width = span / v.k;
+    return [-v.t / v.k + width / 2, 0, width];
+  };
+  const path = interpolateZoom(window(from[axis]), window(to[axis]));
+  return (e) => {
+    const [centre, , width] = path(e);
+    const k = span / width;
+    return { k, t: -k * (centre - width / 2) };
+  };
+}
+
+function stopAnimation(session: Session): void {
+  session.animation?.stop();
+  session.animation = undefined;
+  session.target = undefined;
+  session.moving = undefined;
 }
 
 function listen(svg: SVGSVGElement): void {
@@ -493,7 +860,7 @@ function onWheel(svg: SVGSVGElement, e: WheelEvent): void {
     const bounds = boundsFor(active.ctx, view, zoom, axis);
     view = withAxis(view, axis, zoomAxis(view[axis], factor, pivotOf(p, axis, span), span, bounds));
   }
-  redraw(active, view);
+  applyNow(svg, active, view, 'wheel');
 }
 
 /** Grab cursor over the plot area, the default cursor elsewhere. */
@@ -564,7 +931,7 @@ function startPan(svg: SVGSVGElement, active: Active, e: PointerEvent): void {
       const bounds = boundsFor(current.ctx, view, zoom, axis);
       view = withAxis(view, axis, panAxis(view[axis], delta[axis], span, bounds));
     }
-    redraw(current, view);
+    applyNow(svg, current, view, 'pan');
   }
 
   window.addEventListener('pointermove', onMove);
@@ -620,7 +987,7 @@ function startSelection(svg: SVGSVGElement, active: Active, start: Point): void 
   function onUp(): void {
     stop();
     const current = activeSession(svg);
-    if (current) zoomToRect(current, toRect(start, end));
+    if (current) zoomToRect(svg, current, toRect(start, end));
   }
 
   paint();
@@ -645,7 +1012,7 @@ function clampPoint(p: Point, ctx: PlotContext): Point {
 }
 
 /** Zoom each zoomable axis to the rectangle; an axis with a thin selection stays as it is. */
-function zoomToRect(active: Active, rect: Rect): void {
+function zoomToRect(svg: SVGSVGElement, active: Active, rect: Rect): void {
   const zoom: ZoomSpec = active.session.spec.zoom ?? {};
   let view = active.session.view;
   let changed = false;
@@ -657,14 +1024,14 @@ function zoomToRect(active: Active, rect: Rect): void {
     view = withAxis(view, axis, zoomToSpan(view[axis], a, b, spanOf(active.ctx, axis), bounds));
     changed = true;
   }
-  if (changed) redraw(active, view);
+  if (changed) goTo(svg, active, view, 'selection', undefined);
 }
 
 function onDoubleClick(svg: SVGSVGElement, e: MouseEvent): void {
   const active = activeSession(svg);
   if (!active || !resetsOn(active.session.spec.zoom, 'dblclick')) return;
   if (regionOf(plotPoint(svg, active, e.clientX, e.clientY), active.ctx) !== 'plot') return;
-  redraw(active, IDENTITY_VIEW);
+  goTo(svg, active, IDENTITY_VIEW, 'reset', undefined);
 }
 
 function isOnResetButton(target: EventTarget | null): boolean {
@@ -725,7 +1092,7 @@ function pinchTo(svg: SVGSVGElement, pinch: Pinch, points: ReadonlyMap<number, P
     const next = zoomAxis(pinch.view[axis], factor, pivotOf(mid, axis, span), span, bounds);
     view = withAxis(view, axis, next);
   }
-  redraw(active, view);
+  applyNow(svg, active, view, 'pinch');
 }
 
 function onTouchEnd(svg: SVGSVGElement, e: PointerEvent): void {

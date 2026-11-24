@@ -92,6 +92,12 @@ export interface PlotSpec {
   /** Zoom and pan of the plot area. Off unless `isEnabled` is `true`. */
   zoom?: ZoomSpec;
   /**
+   * Animation of the first display: the marks are revealed from left to right. Only
+   * the first draw of an SVG plays it, not the redraws of a zoom or of a data update.
+   * Skipped when the user prefers reduced motion. Default: no animation.
+   */
+  animation?: ZoomAnimation;
+  /**
    * Called after every draw, including the redraws of a zoom, once the built-in
    * layers are in place. Use it for decorations that `plot()` does not draw: the
    * SVG is cleared on each draw, so anything added outside this hook is lost.
@@ -236,6 +242,71 @@ export interface ZoomSpec {
   resetOn?: ZoomReset;
   /** Label of the reset button. Default: `Réinitialiser`. */
   resetLabel?: string;
+  /**
+   * Animate the view changes that jump: the reset, the zoom to a selection and the
+   * calls of the control functions (`zoomBy`, `panBy`, `setVisibleDomain`, …). The
+   * wheel, the drag and the pinch follow the pointer and are never animated.
+   * Default: no animation.
+   */
+  animation?: ZoomAnimation;
+}
+
+/** Easing of a zoom animation (from `d3-ease`). */
+export type ZoomEasing = 'linear' | 'cubic-out' | 'elastic-out';
+
+/** Animation of the view changes. Skipped when the user prefers reduced motion. */
+export interface ZoomAnimation {
+  /** Turn the animation on. Default: `true` once `animation` is given. */
+  isEnabled?: boolean;
+  /** Duration in milliseconds, from 0 to 5000. Default: 400. */
+  duration?: number;
+  /** Easing. Default: `cubic-out`. */
+  easing?: ZoomEasing;
+}
+
+/** What changed the view, as told to the `onZoom` listeners. */
+export type ZoomSource = 'wheel' | 'pan' | 'selection' | 'pinch' | 'reset' | 'control' | 'link';
+
+/** A change of view, as told to the `onZoom` listeners. */
+export interface ZoomEvent {
+  readonly svg: SVGSVGElement;
+  readonly view: ZoomView;
+  readonly source: ZoomSource;
+}
+
+/** Options of the zoom control functions. */
+export interface ZoomControlOptions {
+  /** Animate this change. Default: as the `zoom.animation` option of the plot says. */
+  animate?: boolean;
+}
+
+/** Options of `zoomBy`. */
+export interface ZoomByOptions extends ZoomControlOptions {
+  /** Axes to zoom, among the zoomable ones. Default: `both`. */
+  axes?: ZoomAxes;
+  /**
+   * Point kept in place, as a share of the plot area from 0 to 1: `x` from the left,
+   * `y` from the top. Default: the centre, `0.5`.
+   */
+  center?: { readonly x?: number; readonly y?: number };
+}
+
+/** Options of `linkZoom`. */
+export interface LinkZoomOptions {
+  /** Axes whose view the linked plots share. Default: `both`. */
+  axes?: ZoomAxes;
+}
+
+/** Visible range of each axis, in data values: `[low, high]`. */
+export interface VisibleDomain {
+  readonly x: readonly [Primitive, Primitive];
+  readonly y: readonly [Primitive, Primitive];
+}
+
+/** A range to show on each axis, in data values. A missing axis keeps its view. */
+export interface DomainRequest {
+  readonly x?: readonly [Primitive, Primitive];
+  readonly y?: readonly [Primitive, Primitive];
 }
 
 /** View of one axis: a base pixel `p` is drawn at `k * p + t`, with `k >= 1` and `t <= 0`. */
